@@ -1,0 +1,178 @@
+Creating New Directories in the Main Data Storage Space:
+
+exec rdsadmin.rdsadmin_util.create_directory(p_directory_name => 'DATA_PUMP_DIR');
+
+Listing Files in a DB Instance Directory:
+
+select * from table
+    (rdsadmin.rds_file_util.listdir(p_directory => 'DATA_PUMP_DIR'));
+	
+Reading Files in a DB Instance Directory:
+
+select * from table
+    (rdsadmin.rds_file_util.read_text_file(
+        p_directory => 'DATA_PUMP_DIR',
+        p_filename  => 'rice.txt'));
+		
+You can move an external data file from one Oracle database to another by using the DBMS_FILE_TRANSFER package or the UTL_FILE package.
+
+Removing Files in a DB Instance Directory
+
+exec utl_file.fremove('DATA_PUMP_DIR', cr.filename);
+
+Setting the Default Tablespace:
+
+exec rdsadmin.rdsadmin_util.alter_default_tablespace(tablespace_name => 'users2');
+
+Setting the Default Temporary Tablespace:
+
+exec rdsadmin.rdsadmin_util.alter_default_temp_tablespace(tablespace_name => 'temp01');
+
+You can resize a bigfile tablespace by using ALTER TABLESPACE.
+
+alter tablespace users2 resize 200M;
+
+
+Killing a Session:
+
+begin
+    rdsadmin.rdsadmin_util.kill(
+        sid    => sid, 
+        serial => serial_number,
+		method => 'immediate');
+end;
+/
+
+select 'exec rdsadmin.rdsadmin_util.kill('||sid||','||serial#||',method => ''immediate'');' 
+from v$session where username = 'COPEL_FMB_BI';
+
+
+You can specify either IMMEDIATE or PROCESS as a value for the method parameter. Specifying PROCESS as the enables you to kill the processes associated with a session. You should only do this if killing the session using IMMEDIATE as the method value was unsuccessful.
+
+
+Enabling and Disabling Restricted Sessions:
+
+exec rdsadmin.rdsadmin_util.restricted_session(p_enable => true);
+
+
+Granting SELECT or EXECUTE Privileges to SYS Objects
+
+begin
+    rdsadmin.rdsadmin_util.grant_sys_object(
+        p_obj_name     => 'V_$SESSION',
+        p_grantee      => 'USER1',
+        p_privilege    => 'SELECT',
+        p_grant_option => true);
+end;
+/
+
+Revoking SELECT or EXECUTE Privileges on SYS Objects
+
+begin
+    rdsadmin.rdsadmin_util.revoke_sys_object(
+        p_obj_name  => 'V_$SESSION',
+        p_revokee   => 'USER1',
+        p_privilege => 'SELECT');
+end;
+/
+
+
+Switching Online Log Files:
+
+exec rdsadmin.rdsadmin_util.switch_logfile;
+
+Adding Online Redo Logs:
+
+exec rdsadmin.rdsadmin_util.add_logfile(p_size => '100M');
+
+Dropping Online Redo Logs:
+
+exec rdsadmin.rdsadmin_util.drop_logfile(grp => 3);
+
+Resizing Online Redo Logs:
+
+exec rdsadmin.rdsadmin_util.add_logfile(bytes => 536870912); e
+
+exec rdsadmin.rdsadmin_util.drop_logfile(grp => 1);
+
+Collecting Statistics via DBMS_STATS
+
+begin
+   dbms_stats.unlock_table_stats('NESA_FMB_HML', 'D_RECORDS');
+end;
+
+BEGIN
+  DBMS_STATS.GATHER_TABLE_STATS (ownname => 'NESA_FMB_HML' , tabname => 'D_RECORDS',cascade => true, estimate_percent => 10,method_opt=>'for all indexed columns size 1', granularity => 'ALL', degree => 1);
+END;
+
+----------------------------------
+
+Thus, to show the retention period for archived logs on RDS instance file system, please run: [1]
+
+set serveroutput on
+exec rdsadmin.rdsadmin_util.show_configuration;
+
+To change the retention period for archived logs on RDS instance file system, please run:
+begin
+rdsadmin.rdsadmin_util.set_configuration(             <- this example sets retention to 24 hours.
+	name  => 'archivelog retention hours',
+	value => '24');
+end;
+/
+commit;
+
+For Alert Log:
+select message_text from alertlog;
+
+For listener log
+select message_text from listenerlog;
+
+To disable common user and role names must start with C## or c## and consist only of ASCII characters.
+alter session set "_ORACLE_SCRIPT"=true;
+
+
+To get or put dump into S3 :
+
+SELECT rdsadmin.rdsadmin_s3_tasks.upload_to_s3(
+      p_bucket_name    =>  'dcide.oracle.bakups', 
+      p_prefix         =>  'SHORT_TERM_ALUPAR_2022_02_10_01_39_10.dmp', 
+      p_s3_prefix      =>  'SHORT_TERM_ALUPAR_2022_02_10_01_39_10.dmp', 
+      p_directory_name =>  'DATA_PUMP_DIR') 
+   AS TASK_ID FROM DUAL;
+
+   
+SELECT rdsadmin.rdsadmin_s3_tasks.download_from_s3(
+      p_bucket_name    =>  'dcide.oracle.bakups', 
+      p_s3_prefix      =>  'SHORT_TERM_ALUPAR_2022_02_10_01_39_10.dmp', 
+      p_directory_name =>  'DATA_PUMP_DIR') 
+   AS TASK_ID FROM DUAL;
+   
+----------------------------------
+
+aws s3 ls s3://dcide.oracle.bakups/
+aws s3 ls s3://dcide-mysql8-backups/
+
+aws s3 cp NESA_DUMP_2018_12_11_01_31_49.dmp.gz s3://dcide.oracle.bakups/
+
+aws s3 rm  s3://dcide.oracle.bakups/NESA_DUMP_2018_12_11_01_31_49.dmp.gz
+
+aws s3 sync . s3://dcide.oracle.bakups/
+
+for fn in `awk '{print $4}' backup.txt`; do
+  aws s3 rm  s3://dcide.oracle.bakups/${fn}
+done
+
+-------------
+
+telnet 54.225.206.51 9000
+
+sudo tcpdump tcp port 9000
+
+
+
+aws s3 ls s3://teste-mks-s3/chatbot.txt
+
+aws s3 ls s3://elasticbeanstalk-sa-east-1-413604444925/chatbot.txt
+
+export AWS_ACCESS_KEY_ID=AKIAI5IDLXKRIDONIV2A
+export AWS_SECRET_ACCESS_KEY=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
