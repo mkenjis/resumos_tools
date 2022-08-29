@@ -44,17 +44,17 @@ import org.apache.spark.sql.types._
 val schema = StructType(Seq( StructField("commentCount", IntegerType, true), 
                              StructField("lastActivityDate", TimestampType, true), 
                              StructField("ownerUserId", LongType, true),
-							 ...
-							 StructField("postTypeId", LongType, true),
+                             ...
+                             StructField("postTypeId", LongType, true),
                              StructField("id", LongType, false))
 						)
 						
 val schema = StructType().add("commentCount", IntegerType).
                           add("lastActivityDate", TimestampType).
-						  add("ownerUserId", LongType).
-						  ...
-						  add("postTypeId", LongType).
-						  add("id", LongType)
+                          add("ownerUserId", LongType).
+                          ...
+                          add("postTypeId", LongType).
+                          add("id", LongType)
 						  
 val rowRDD = itPostsSplit.map(x => Row(x(0),x(1),x(2),....,x(N-1),x(N)))						  
 val itPosts = spark.createDataFrame(rowRDD, schema)
