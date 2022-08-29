@@ -1,6 +1,6 @@
 
-Manipulating Spark´s Pair RDDs
-==============================
+Manipulating Spark Pair RDDs
+============================
 
 1) Creating Pair RDDs
 

@@ -1,0 +1,140 @@
+
+Manipulating Spark Dataframes
+=============================
+
+1) Creating SparkSession instance
+
+SparkSession wraps SparkContext and SQLContext and is the entry point to Spark cluster.
+
+import org.apache.spark.sql.SparkSession
+val spark = SparkSession.builder().getOrElse()
+
+
+2) Creating Dataframes
+
+val itPostsRows = sc.textFile("first-edition/ch05/italianPosts.csv")
+val itPostsSplit = itPostsRows.map(x => x.split("~"))
+
+import spark.implicits._
+
+* implicit toDF()
+
+import java.sql.Timestamp
+case class Post(
+	 commentCount:Option[Int], 
+	 lastActivityDate:Option[java.sql.Timestamp], 
+	 ownerUserId:Option[Long], 
+	 body:String, 
+	 score:Option[Int], 
+	 creationDate:Option[java.sql.Timestamp], 
+	 viewCount:Option[Int], 
+	 title:String, 
+	 tags:String, 
+	 answerCount:Option[Int], 
+	 acceptedAnswerId:Option[Long], 
+	 postTypeId:Option[Long], 
+	 id:Long)
+ 
+val caseRDD = itPostsSplit.map(x => Post(x(0).toInt, x(1), x(2).toLong, ..., x(N-1).toLong, x(N).toLong))
+val itPosts = caseRDD.toDF()
+
+* SparkSession createDataframe
+
+import org.apache.spark.sql.types._
+val schema = StructType(Seq( StructField("commentCount", IntegerType, true), 
+                             StructField("lastActivityDate", TimestampType, true), 
+                             StructField("ownerUserId", LongType, true),
+							 ...
+							 StructField("postTypeId", LongType, true),
+                             StructField("id", LongType, false))
+						)
+						
+val schema = StructType().add("commentCount", IntegerType).
+                          add("lastActivityDate", TimestampType).
+						  add("ownerUserId", LongType).
+						  ...
+						  add("postTypeId", LongType).
+						  add("id", LongType)
+						  
+val rowRDD = itPostsSplit.map(x => Row(x(0),x(1),x(2),....,x(N-1),x(N)))						  
+val itPosts = spark.createDataFrame(rowRDD, schema)
+
+
+3) Getting Schema Information
+
+* df.printSchema - prints schema information
+* df.columns - returns a list of column names as Array[String]
+* df.dtypes - returns a list of tuples, each containing the column name and the name of its type as Array[(String, String)]
+
+
+4) Referecing Column objects in Dataframes
+
+* col("colname") 
+* column("colname")
+* 'colname - sugar way of constructing a Column class in Scala
+* $"colname" - sugar way of constructing a Column class in Scala
+* df.col("colname")
+
+
+5) Manipulating Dataframes
+
+* df.select(col1, col2, ..., colN)
+* df.drop(col1, col2, ..., colN)
+* df.filter(expr) or df.where(expr)
+* df.withColumn(col, expr)
+* df.withColumnRename(col, "new-name")
+* df.orderBy(col1, col2, ..., colN) or df.sort(col1, col2, ..., colN)
+
+
+6) Dataframe Functions
+
+Available at org.apache.spark.sql.functions._
+
+* Date time - unix_timestamp, from_unixtime, to_date, current_date, current_timesatmp, date_add, date_sub, add_months, datediff, months_
+between, dayofmonth, dayofyear, weekofyear, second, minute, hour, month
+* String - concat, length, levenshtein, locate, lower, upper, ltrim, rtrim, trim, lpad, rpad, repeat, reverse, split, substring, base64
+* Math - cos, acos, sin, asin, tan, atan, ceil, floor, exp, factorial, log, pow, radian, degree, sqrt, hex, unhex
+Cryptography - cr32, hash, md5, sha1, sha2
+* Aggregation - approx._count_distinct, countDistinct, sumDistinct, avg, corr, count, first, last, max, min, skewness, sum
+* Collection - array_contain, explode, from_json, size, sort_array, to_json
+* Window - dense_rank, lag, lead, ntile, rank, row_number
+* Miscellaneous - coalesce, isNan, isnull, isNotNull, monotonically_increasing_id, lit, when
+
+7) Window Functions
+
+import org.apache.spark.sql.expressions.Window
+
+For window spec, you need to specify one or more columns using partitionBy() function, and/or specify ordering in the partition using the orderBy() function.
+
+You can further restrict which rows appear in frames by using :
+- rowsBetween function restricts rows by their row index, where index 0 is the row being processed, -1 is the previous row, and so on. 
+- rangeBetween function restricts rows by their values and includes only those rows whose values (in the defined column to which the window specification applies) fall in the defined range.
+
+scala> postsDf.filter('postTypeId === 1).
+ select('ownerUserId, 'acceptedAnswerId, 'score, max('score).
+ over(Window.partitionBy('ownerUserId)) as "maxPerUser").
+ withColumn("toMax", 'maxPerUser - 'score).show(10)
+
+scala> postsDf.filter('postTypeId === 1).
+ select('ownerUserId, 'id, 'creationDate, 
+ lag('id, 1).over(Window.partitionBy('ownerUserId).orderBy('creationDate)) as "prev", 
+ lead('id, 1).over(Window.partitionBy('ownerUserId).orderBy('creationDate)) as "next").
+ orderBy('ownerUserId, 'id).show(10)
+ 
+
+8) Missing Values
+
+Available at DataFrameNaFunctions class, accessible through the DataFrames na field
+
+* df.na.drop() or df.na.drop("any") - drop row when null is any column.
+* df.na.drop("all") - drop row when null is all of columns.
+* df.na.drop(Array("col1","col2",...,"colN")) - drop row when null is on columns specified.
+* df.na.fill(value: type) - fills null columns with value matching the type
+* df.na.replace(Array("col1","col2",...,"colN"), Map(value1 -> value2))
+
+
+9) Get RDDs from Dataframes
+
+df.rdd - returns a RDD[org.apache.spark.sql.Row]
+
+Row object has various get* functions for accessing column values by column indexes (getString(index), getInt(index), getMap(index), ...)
