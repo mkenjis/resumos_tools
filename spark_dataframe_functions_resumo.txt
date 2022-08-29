@@ -133,7 +133,7 @@ Available at DataFrameNaFunctions class, accessible through the DataFrames na fi
 * df.na.replace(Array("col1","col2",...,"colN"), Map(value1 -> value2))
 
 
-9) Get RDDs from Dataframes
+9) Getting RDDs from Dataframes
 
 df.rdd - returns a RDD[org.apache.spark.sql.Row]
 
