@@ -47,7 +47,7 @@ val schema = StructType(Seq( StructField("commentCount", IntegerType, true),
                              ...
                              StructField("postTypeId", LongType, true),
                              StructField("id", LongType, false))
-						)
+                        )
 						
 val schema = StructType().add("commentCount", IntegerType).
                           add("lastActivityDate", TimestampType).
