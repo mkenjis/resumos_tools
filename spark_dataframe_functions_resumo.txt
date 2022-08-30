@@ -150,7 +150,7 @@ All returns RelationGroupedDataset grouping rows that have same values in the gr
 
 RelationalGroupedDataset provides a standard set of aggregation functions that you apply to each subgroup. They are avg(), count(), min(), max(), sum() and agg().
 
-* df.groupBy(col1,col2,...,colN) - combines values of input columns only
+* df.groupBy(col1,col2,...,colN) - creates groups based on values of input columns only
 * df.rollup(col1,col2,...,colN) - respects the hierarchy of input columns
 * df.cube(col1,col2,...,colN) - returns all combinations of input columns
 
