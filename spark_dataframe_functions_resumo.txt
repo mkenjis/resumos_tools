@@ -138,3 +138,78 @@ Available at DataFrameNaFunctions class, accessible through the DataFrames na fi
 df.rdd - returns a RDD[org.apache.spark.sql.Row]
 
 Row object has various get* functions for accessing column values by column indexes (getString(index), getInt(index), getMap(index), ...)
+
+
+10) Grouping data
+
+All returns RelationGroupedDataset grouping rows that have same values in the grouped columns
+
+* df.groupBy(col1,col2,...,colN)
+* df.rollup(col1,col2,...,colN) - respects the hierarchy of input columns
+* df.cube(col1,col2,...,colN) - returns all combinations of input columns
+
+scala> smplDf.groupBy('ownerUserId, 'tags, 'postTypeId).count.show()
+
+11) Joining data
+
+* df.join(df2, col) - performs an inner join with col common to both dataframes
+* df.join(df2, col_expression, join_type) - join_type can be inner, outer, left_outer, right_outer, or leftsemi
+
+scala> val postsVotes = postsDf.join(votesDf, postsDf("id") === 'postId)
+
+
+Running SQL in SparkSQL
+=======================
+
+SparkSQL can run SQL commands natively. To enable Hive functionalities (HQL, and access Hive tables and community-built Hive UDFs), enable Hive support in Spark.
+
+val spark = SparkSession.builder().
+ enableHiveSupport().
+ getOrCreate()
+
+1) Table catalog and Hive metastore
+
+Dataframes can be register as table in table catalog. Spark stores the table definition (where and how Dataframe´s data is stored) and is acessible by SQL commands when referencing its registered name.
+
+1) Registering Tables Temporarily
+
+postsDf.createOrReplaceTempView("posts_temp")
+
+2) Registering Tables Permanently
+
+postsDf.write.saveAsTable("posts")
+
+3) Executing SQL queries
+
+val resultDf = sql("select * from posts")
+
+4) Saving data
+
+df.write creates a DataFrameWriter interface to write Dataframe to external storage.
+
+syntax: DataFrameWriter.format().mode().option().partitionBy()
+
+* saveAsTable
+
+postsDf.write.saveAsTable("posts")
+
+postsDf.write.format("json").saveAsTable("postsjson")
+
+* insertInto
+* save
+* shortcut methods : csv, json, parquet, jdbc
+
+postsDf.jdbc("jdbc:postgresql://postgresrv/mydb", "posts", props
+
+5) Loading data
+
+df.read creates a DataFrameReader interface to read data from external storage and load into Dataframe.
+
+syntax: DataFrameReader.format().option().schema()
+
+val postsDf = spark.read.table("posts")
+
+val props = new java.util.Properties()
+props.setProperty("user", "user")
+props.setProperty("password", "password")
+val result = spark.read.jdbc("jdbc:postgresql://postgresrv/mydb", "posts", Array("viewCount > 3"), props)
