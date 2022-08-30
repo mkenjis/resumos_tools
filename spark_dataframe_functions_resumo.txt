@@ -20,7 +20,7 @@ val itPostsSplit = itPostsRows.map(x => x.split("~"))
 
 import spark.implicits._
 
-* implicit toDF()
+* via implicit toDF()
 
 import java.sql.Timestamp
 case class Post(
@@ -41,7 +41,7 @@ case class Post(
 val caseRDD = itPostsSplit.map(x => Post(x(0).toInt, x(1), x(2).toLong, ..., x(N-1).toLong, x(N).toLong))
 val itPosts = caseRDD.toDF()
 
-* SparkSession createDataframe
+* via SparkSession createDataframe
 
 import org.apache.spark.sql.types._
 val schema = StructType(Seq( StructField("commentCount", IntegerType, true), 
