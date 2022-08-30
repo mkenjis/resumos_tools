@@ -103,6 +103,7 @@ Cryptography - cr32, hash, md5, sha1, sha2
 * Window - dense_rank, lag, lead, ntile, rank, row_number
 * Miscellaneous - coalesce, isNan, isnull, isNotNull, monotonically_increasing_id, lit, when
 
+
 7) Window Functions
 
 import org.apache.spark.sql.expressions.Window
@@ -133,7 +134,7 @@ Available at DataFrameNaFunctions class, accessible through the DataFrames na fi
 * df.na.drop("all") - drop row when null is all of columns.
 * df.na.drop(Array("col1","col2",...,"colN")) - drop row when null is on columns specified.
 * df.na.fill(value: type) - fills null columns with value matching the type
-* df.na.replace(Array("col1","col2",...,"colN"), Map(value1 -> value2))
+* df.na.replace(Array("col1","col2",...,"colN"), Map(value1 -> value2)) - replaces value1 by value2 in columns listed
 
 
 9) Getting RDDs from Dataframes
@@ -145,17 +146,20 @@ Row object has various get* functions for accessing column values by column inde
 
 10) Grouping data
 
-All returns RelationGroupedDataset grouping rows that have same values in the grouped columns
+All returns RelationGroupedDataset grouping rows that have same values in the grouped columns.
 
-* df.groupBy(col1,col2,...,colN)
+RelationalGroupedDataset provides a standard set of aggregation functions that you apply to each subgroup. They are avg(), count(), min(), max(), sum() and agg().
+
+* df.groupBy(col1,col2,...,colN) - combines values of input columns only
 * df.rollup(col1,col2,...,colN) - respects the hierarchy of input columns
 * df.cube(col1,col2,...,colN) - returns all combinations of input columns
 
 scala> smplDf.groupBy('ownerUserId, 'tags, 'postTypeId).count.show()
 
+
 11) Joining data
 
-* df.join(df2, col) - performs an inner join with col common to both dataframes
+* df.join(df2, "col_name") - performs an inner join with "col_name" common to both dataframes
 * df.join(df2, col_expression, join_type) - join_type can be inner, outer, left_outer, right_outer, or leftsemi
 
 scala> val postsVotes = postsDf.join(votesDf, postsDf("id") === 'postId)
@@ -164,51 +168,71 @@ scala> val postsVotes = postsDf.join(votesDf, postsDf("id") === 'postId)
 Running SQL in SparkSQL
 =======================
 
-SparkSQL can run SQL commands natively. To enable Hive functionalities (HQL, and access Hive tables and community-built Hive UDFs), enable Hive support in Spark.
+SparkSQL can run SQL commands natively. Spark supports standard ANSI SQL and HiveQL.
+
+To enable Hive functionalities in Spark (HiveQL and access to Hive tables and community-built UDFs), enable Hive support in Spark.
 
 val spark = SparkSession.builder().
  enableHiveSupport().
  getOrCreate()
 
+
 1) Table catalog and Hive metastore
 
-Dataframes can be register as table in table catalog. Spark stores the table definition (where and how Dataframe´s data is stored) and is acessible by SQL commands when referencing its registered name.
+Dataframes can be registered as table in table catalog. 
 
-1) Registering Tables Temporarily
+Catalog stores the table definition (where and how Dataframe´s data is stored) and is acessible by SQL commands when referencing its registered name.
+
+By default, HiveContext creates a Derby database under metastore_db subdirectory. To change the directory is located, set the hive.metastore.warehouse.dir property in your hive-site.xml file.
+
+
+2) Registering Tables Temporarily
 
 postsDf.createOrReplaceTempView("posts_temp")
 
-2) Registering Tables Permanently
+
+3) Registering Tables Permanently
+
+Managed tables are created in the spark_warehouse directory. You can change that location by setting the spark.sql.warehouse.dir
 
 postsDf.write.saveAsTable("posts")
 
-3) Executing SQL queries
 
-val resultDf = sql("select * from posts")
+4) Executing SQL queries
 
-4) Saving data
+val resultDf = spark.sql("select * from posts")
 
-df.write creates a DataFrameWriter interface to write Dataframe to external storage.
 
-syntax: DataFrameWriter.format().mode().option().partitionBy()
+5) Saving data
 
-* saveAsTable
+Built-in data sources: CSV, JSON, Parquet, JDBC, ORC
+
+df.write provides DataFrameWriter interface to write Dataframe data to external storage.
+
+Syntax: DataFrameWriter.format().mode().option().partitionBy()
+
+* saveAsTable("table")
 
 postsDf.write.saveAsTable("posts")
-
 postsDf.write.format("json").saveAsTable("postsjson")
 
-* insertInto
-* save
-* shortcut methods : csv, json, parquet, jdbc
+* insertInto("table")
+* save("path")
+* jdbc("URL", "table", java.util.Properties)
 
-postsDf.jdbc("jdbc:postgresql://postgresrv/mydb", "posts", props
+val props = new java.util.Properties()
+props.setProperty("user", "user")
+props.setProperty("password", "password")
+postsDf.write.jdbc("jdbc:postgresql://postgresrv/mydb", "posts", props)
 
-5) Loading data
 
-df.read creates a DataFrameReader interface to read data from external storage and load into Dataframe.
+6) Loading data
 
-syntax: DataFrameReader.format().option().schema()
+df.read provides DataFrameReader interface to read data from external storage and load into Dataframe.
+
+Syntax: DataFrameReader.format().option().schema().load()
+
+val postsDf = spark.read.format("json").load("postsjson")
 
 val postsDf = spark.read.table("posts")
 
