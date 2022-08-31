@@ -1,6 +1,11 @@
 
-ML with Spark MLlib
-===================
+ML with Spark MLlib API
+=======================
+
+MLlib API was introduce in Spark 0.8.
+
+Basically it works on RDD API to provide the ML functionalities.
+
 
 1) Preparing the data
 
@@ -36,8 +41,8 @@ It contains target value and feature Vector.
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.mllib.regression.LabeledPoint
 val housingData = housingVals.map(x => { 
- val a = x.toArray
- LabeledPoint(a(a.length-1), Vectors.dense(a.slice(0, a.length-1))) 
+   val a = x.toArray
+   LabeledPoint(a(a.length-1), Vectors.dense(a.slice(0, a.length-1))) 
 })
 
 
@@ -106,5 +111,75 @@ val model = LinearRegressionModel.load(sc, "ch07output/model")
 
 
 
-ML with Spark ML
-================
+ML with Spark ML API
+====================
+
+ML API was introduce in Spark 1.2. Spark ML uses DataFrame to work with datasets.
+
+MLlib API wasn’t scalable and extendable enough, nor sufficiently practical for use in real machine learning projects. The goal of Spark ML library is to generalize machine learning operations and streamline machine learning processes.
+
+ML API introduces new abstractions — estimators, transformers, and evaluators — that can be combined to form pipelines.
+
+
+1) Preparing the data
+
+val df_raw = spark.read.format("csv").
+             option("header","true").option("inferSchema","true").
+             load("first-edition/ch08/adult.raw")
+
+ 
+2) Dealing With Categorical Values
+
+* StringIndexer() - converts String categorical values into integer indexes of those values. Takes a DataFrame and fits a StringIndexerModel, which is then used for transformations of a column.
+
+import org.apache.spark.ml.feature.StringIndexer
+val si = new StringIndexer().setInputCol("col").setOutputCol("newcol")
+val sm = si.fit(df)
+val newdf = sm.transform(df)
+
+* OneHotEncoder() - one-hot encodes a column and puts the results into a new column as a one-hot-encoded sparse Vector.
+
+import org.apache.spark.ml.feature.OneHotEncoder
+val onehotenc = new OneHotEncoder().setInputCol("col").setOutputCol("newcol")
+val newdf = onehotenc.transform(df)
+
+
+3) Merging The Data
+
+* VectorAssembler() - merge all Vectors and columns into a single Vector column containing all the features.
+
+import org.apache.spark.ml.feature.VectorAssembler
+val va = new VectorAssembler().setInputCols(df.columns.diff(Array("income"))).setOutputCol("features")
+val points = va.transform(df)
+
+
+4) Splitting the data
+
+val splits = points.randomSplit(Array(0.8, 0.2))
+val adulttrain = splits(0).cache()
+val adultvalid = splits(1).cache(
+
+
+5) Training the logistic regression model
+
+val lr = new LogisticRegression
+lr.setRegParam(0.01).setMaxIter(500).setFitIntercept(true)
+val lrmodel = lr.fit(adulttrain)
+
+
+6) Predicting the target values
+
+val validpredicts = lrmodel.transform(adultvalid)
+validpredicts.show()
+
+
+7) Evaluating model´s performance
+
+scala> val bceval = new BinaryClassificationEvaluator()
+bceval: org.apache.spark.ml...
+
+scala> bceval.evaluate(validpredicts)
+res0: Double = 0.9039934862200736
+
+scala> bceval.getMetricName
+res1: String = areaUnderROC
