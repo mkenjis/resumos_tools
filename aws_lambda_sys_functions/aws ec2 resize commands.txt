@@ -1,0 +1,28 @@
+Let’s stop our instance using stop-instances action:
+
+aws ec2 stop-instances --instance-id <Instance ID>
+
+Let’s check if our instance is in stopped state:
+
+aws ec2 describe-instances --instance-id <Instance ID> --query Reservations[].Instances[].State
+
+Now that our instance is in stopped state, we can now change the instance type. I’m changing my instance from t2.micro to t2.nano:
+
+aws ec2 modify-instance-attribute --instance-type t2.micro --instance-id <Instance ID>
+
+Here we can now see that our instance was changed to t2.nano
+
+aws ec2 describe-instances --instance-id <Instance ID> --query Reservations[].Instances[].InstanceType
+
+Starting back our instance using start-instances
+
+aws ec2 start-instances --instance-id <Instance ID>
+
+And again running describe-instances querying the state
+
+aws ec2 describe-instances --instance-id <Instance ID> --query Reservations[].Instances[].State
+
+
+
+aws ec2 describe-tags --filters "Name=resource-id,Values=<Instance ID>"
+aws ec2 describe-instances --instance-id <Instance ID> --query Reservations[].Instances[].Tags

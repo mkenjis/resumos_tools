@@ -164,8 +164,6 @@ done
 
 -------------
 
-telnet 54.225.206.51 9000
-
 sudo tcpdump tcp port 9000
 
 
@@ -173,6 +171,3 @@ sudo tcpdump tcp port 9000
 aws s3 ls s3://teste-mks-s3/chatbot.txt
 
 aws s3 ls s3://elasticbeanstalk-sa-east-1-413604444925/chatbot.txt
-
-export AWS_ACCESS_KEY_ID=AKIAI5IDLXKRIDONIV2A
-export AWS_SECRET_ACCESS_KEY=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
