@@ -1,0 +1,110 @@
+
+ML with Spark MLlib
+===================
+
+1) Preparing the data
+
+import org.apache.spark.mllib.linalg.Vectors
+val housingLines = sc.textFile("first-edition/ch07/housing.data", 6)
+val housingVals = housingLines.map(x => Vectors.dense(x.split(",").map(_.trim().toDouble)))
+
+
+2) Analyzing data distribution
+
+- column statistics
+
+import org.apache.spark.mllib.linalg.distributed.RowMatrix
+val housingMat = new RowMatrix(housingVals)
+val housingStats = housingMat.computeColumnSummaryStatistics()  # returns a MultivariateStatisticalSummary object
+
+housingStats.min / max / mean / variance / normL1 / normL2
+
+- column cosine similarities
+
+val housingColSims = housingMat.columnSimilarities()
+
+- covariance matrix
+
+val housingCovar = housingMat.computeCovariance()
+
+
+3) Transforming to labeled points
+
+Dataset needs to be converted to LabeledPoint class (used in most of Spark’s machine-learning algorithms). 
+It contains target value and feature Vector.
+
+import org.apache.spark.mllib.linalg.Vectors
+import org.apache.spark.mllib.regression.LabeledPoint
+val housingData = housingVals.map(x => { 
+ val a = x.toArray
+ LabeledPoint(a(a.length-1), Vectors.dense(a.slice(0, a.length-1))) 
+})
+
+
+4) Splitting the data
+
+val sets = housingData.randomSplit(Array(0.8, 0.2))
+val housingTrain = sets(0)
+val housingValid = sets(1)
+
+
+5) Feature scaling / mean normalization
+
+Feature scaling means the ranges of data are scaled to comparable sizes.
+Mean normalization means the data is translated so that the averages are roughly zero.
+
+import org.apache.spark.mllib.feature.StandardScaler 
+val scaler = new StandardScaler(true, true).fit(housingTrain.map(x => x.features)
+
+val trainScaled = housingTrain.map(x => LabeledPoint(x.label, scaler.transform(x.features)))
+val validScaled = housingValid.map(x => LabeledPoint(x.label, scaler.transform(x.features))
+
+
+6) Fitting a linear regression model
+
+import org.apache.spark.mllib.regression.LinearRegressionWithSGD
+
+val model = LinearRegressionWithSGD.train(trainScaled, 200, 1.0)
+
+or
+
+import org.apache.spark.mllib.regression.LinearRegressionWithSGD
+val alg = new LinearRegressionWithSGD()
+alg.setIntercept(true) 
+alg.optimizer.setNumIterations(200)
+trainScaled.cache() 
+validScaled.cache() 
+val model = alg.run(trainScaled
+
+
+7) Predicting the target values
+
+val validPredicts = validScaled.map(x => (model.predict(x.features), x.label))
+
+
+8) Evaluating the model’s performance
+
+scala> import org.apache.spark.mllib.evaluation.RegressionMetrics 
+scala> val validMetrics = new RegressionMetrics(validPredicts)
+scala> validMetrics.rootMeanSquaredError
+res1: Double = 4.775608317676729
+
+scala> validMetrics.meanSquaredError
+res2: Double = 22.806434803863162
+
+
+9) Loading and saving the model
+
+- Saving
+
+model.save(sc, "chapter07output/model")
+
+- Loading
+
+import org.apache.spark.mllib.regression.LinearRegressionModel
+val model = LinearRegressionModel.load(sc, "ch07output/model")
+
+
+
+ML with Spark ML
+================
