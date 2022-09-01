@@ -214,9 +214,22 @@ The ROC curve is similar to the PR curve, but it has recall (TPR) plotted on its
 FPR =   FP
       -------
 	  FP + TN
+
+
+10) Loading and saving the model
+
+- Persist model and pipeline
+
+lrmodel.write.overwrite().save("/tmp/logistic-regression-model")
+
+
+- load model and pipeline
+
+val prevModel = LogisticRegressionModel.load("/tmp/spark-logistic-regression-model")
+
+
 	  
-	  
-10) K-Fold Cross-Validation
+11) K-Fold Cross-Validation
 
 import org.apache.spark.ml.tuning.CrossValidator
 val cv = new CrossValidator().setEstimator(lr).
@@ -242,5 +255,3 @@ best.get* (RegParam, Threshold, Iterations, etc)
 
 val eval = new BinaryClassificationEvaluator()
 eval.evaluate(bestmodel.transform(adultvalid))
-
-
