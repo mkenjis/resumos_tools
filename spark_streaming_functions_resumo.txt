@@ -1,0 +1,105 @@
+Source for more details:
+https://spark.apache.org/docs/3.1.1/api/python/reference/pyspark.html
+
+
+Manipulating Spark Streaming
+============================
+
+1) Creating A Streaming Context
+
+Streaming context needs a SparkContext object (available as variable sc) and a Duration object (specifies time intervals at which Spark Streaming should split the input stream data) and create mini-batch RDDs.
+
+scala> import org.apache.spark._
+scala> import org.apache.spark.streaming._
+scala> val ssc = new StreamingContext(sc, Seconds(5))
+
+
+2) Creating A DStream
+
+DStream is a basic abstraction in Spark Streaming, a sequence of RDDs periodically created from the input stream. 
+
+scala> val filestream = ssc.textFileStream("/home/spark/ch06input")
+
+filestream is an instance of class DStream. DStreams are lazily evaluated like RDDs.
+
+
+3) Manipulating DStreams
+
+import java.sql.Timestamp 
+case class Order(time: java.sql.Timestamp, orderId:Long, 
+                 clientId:Long, symbol:String, amount:Int, price:Double, buy:Boolean)
+
+import java.text.SimpleDateFormat
+val orders = filestream.flatMap(line => {
+   val dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss")
+   val s = line.split(",")
+   try {
+      assert(s(6) == "B" || s(6) == "S")
+      List(Order(new Timestamp(dateFormat.parse(s(0)).getTime()), s(1).toLong, s(2).toLong, s(3), s(4).toInt, s(5).toDouble, s(6) == "B"))
+   }
+   catch {
+      case e : Throwable => println("Wrong line format ("+e+"): "+line)
+      List()
+   }
+})
+
+val numPerType = orders.map(o => (o.buy, 1L)).reduceByKey((c1, c2) => c1+c2)
+
+
+4) Saving Results To A File
+
+scala> numPerType.repartition(1).saveAsTextFiles("/home/spark/ch06output/output", "txt")
+ 
+
+5) Starting Streaming Computation
+
+scala> ssc.start()
+
+scala> ssc.awaitTermination()
+
+
+6) Computation State Over Time
+
+Spark Streaming can perform calculations taking data from previous mini-batches. Spark Streaming keep track of a state that persists over time and over different mini-batches.
+
+For this, DStreams needs to be converted to PairDStreamFunctions; in other words, DStreams containing key-value tuples.
+
+* updateStateByKey(func: (Seq[V], Option[S]) => Option[S]): DStream[(K, Option[S])]
+
+val amountState = amountPerClient.updateStateByKey((vals, totalOpt) => { 
+   totalOpt match {
+      case Some(total) => vals.sum + total
+      case None => vals.sum 
+   }
+})
+
+* mapWithState (func: (Time, KeyType, Option[ValueType], State[StateType]) => Option[MappedType])
+
+
+7) Time-Limited Calculations
+
+Windowed operation is determined by window duration and the slide of the window. Calculation is time-limited and considers only previous mini-batches inside window duration.
+
+val stocksPerWindow = orders.
+ map(x => (x.symbol, x.amount)).window(Minutes(60))
+ reduceByKey((a1:Int, a2:Int) => a1+a2)
+
+
+* window(winDur, [slideDur])
+* countByWindow(winDur, slideDur)
+* countByValueAndWindow(winDur, slideDur, [numParts])
+* reduceByWindow(reduceFunc, winDur, slideDur)
+* reduceByWindow(reduceFunc, invReduceFunc, winDur, slideDur)
+* groupByKeyAndWindow(winDur, [slideDur], [numParts/partitioner])
+* reduceByKeyAndWindow(reduceFunc,winDur, [slideDur], [numParts/partitioner])
+* reduceByKeyAndWindow(reduceFunc, invReduceFunc, winDur,[slideDur], [numParts],[filterFunc])
+
+
+7) Specifying Checkpointing Directory
+
+scala> sc.setCheckpointDir("/home/spark/checkpoint")
+
+This is necessary for DStreams resulting from the updateStateByKey method, because updateStateByKey expands RDD’s DAG in each mini-batch, and that can quickly lead to stack overflow exceptions.
+
+
+

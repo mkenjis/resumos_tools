@@ -1,3 +1,6 @@
+Source for more details:
+https://spark.apache.org/docs/3.1.1/api/python/reference/pyspark.html
+
 
 ML with Spark MLlib API
 =======================
@@ -162,8 +165,9 @@ val adultvalid = splits(1).cache(
 
 5) Training the logistic regression model
 
-val lr = new LogisticRegression
-lr.setRegParam(0.01).setMaxIter(500).setFitIntercept(true)
+import org.apache.spark.ml.LogisticRegression
+val lr = new LogisticRegression.setRegParam(0.01).setMaxIter(500).setFitIntercept(true)
+
 val lrmodel = lr.fit(adulttrain)
 
 
@@ -175,6 +179,7 @@ validpredicts.show()
 
 7) Evaluating model´s performance
 
+scala> import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 scala> val bceval = new BinaryClassificationEvaluator()
 bceval: org.apache.spark.ml...
 
@@ -213,14 +218,15 @@ FPR =   FP
 	  
 10) K-Fold Cross-Validation
 
-import 
+import org.apache.spark.ml.tuning.CrossValidator
 val cv = new CrossValidator().setEstimator(lr).
-   setEvaluator(bceval).setNumFolds(5
- 
+    setEvaluator(bceval).setNumFolds(5
+
+import org.apache.spark.ml.tuning.ParamGridBuilder
 val paramGrid = new ParamGridBuilder().
-   addGrid(lr.maxIter, Array(1000)).
-   addGrid(lr.regParam, Array(0.0001, 0.001, 0.005, 0.01, 0.05, 0.1)).
-   build()
+    addGrid(lr.maxIter, Array(1000)).
+    addGrid(lr.regParam, Array(0.0001, 0.001, 0.005, 0.01, 0.05, 0.1)).
+    build()
 
 cv.setEstimatorParamMaps(paramGrid)
 
@@ -228,6 +234,7 @@ val cvmodel = cv.fit(adulttrain
 
 * Getting Best Model And Evaluating
 
+import org.apache.spark.ml.classification.LogisticRegressionModel
 val bestmodel = cvmodel.bestModel.asInstanceOf[LogisticRegressionModel]
 
 bestmodel.coefficients
