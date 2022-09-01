@@ -200,8 +200,8 @@ R =   TP    (recall)
     -------
 	TP + FN
 	
-f1 =  2PR
-     -----
+f1 =   2PR
+     -------
 	 P + RDD
 	 
 
