@@ -183,3 +183,57 @@ res0: Double = 0.9039934862200736
 
 scala> bceval.getMetricName
 res1: String = areaUnderROC
+
+
+8) Precision And Recall Metrics
+
+P =   TP    (precision)
+    -------
+	TP + FP
+	
+R =   TP    (recall)
+    -------
+	TP + FN
+	
+f1 =  2PR
+     -----
+	 P + RDD
+	 
+
+9) PR Curve And ROC Curve
+
+A precision-recall (PR) curve is calculated changing the probability threshold gradually and counting 0 and 1 labels according to probability found at each point, and calculate precision and recall. Then you plot the obtained values on the same graph (precision on the Y-axis and recall on the X-axis)
+
+The ROC curve is similar to the PR curve, but it has recall (TPR) plotted on its Y-axis and the false positive rate (FPR) plotted on its X-axis. FPR is calculated as the percentage of false positives out of all negative samples
+
+FPR =   FP
+      -------
+	  FP + TN
+	  
+	  
+10) K-Fold Cross-Validation
+
+import 
+val cv = new CrossValidator().setEstimator(lr).
+   setEvaluator(bceval).setNumFolds(5
+ 
+val paramGrid = new ParamGridBuilder().
+   addGrid(lr.maxIter, Array(1000)).
+   addGrid(lr.regParam, Array(0.0001, 0.001, 0.005, 0.01, 0.05, 0.1)).
+   build()
+
+cv.setEstimatorParamMaps(paramGrid)
+
+val cvmodel = cv.fit(adulttrain
+
+* Getting Best Model And Evaluating
+
+val bestmodel = cvmodel.bestModel.asInstanceOf[LogisticRegressionModel]
+
+bestmodel.coefficients
+best.get* (RegParam, Threshold, Iterations, etc)
+
+val eval = new BinaryClassificationEvaluator()
+eval.evaluate(bestmodel.transform(adultvalid))
+
+
