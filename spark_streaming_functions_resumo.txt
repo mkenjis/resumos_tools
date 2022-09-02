@@ -102,4 +102,56 @@ scala> sc.setCheckpointDir("/home/spark/checkpoint")
 This is necessary for DStreams resulting from the updateStateByKey method, because updateStateByKey expands RDD’s DAG in each mini-batch, and that can quickly lead to stack overflow exceptions.
 
 
+8) Other Built-In Input Streams
 
+* FILE INPUT STREAMS
+
+- binaryRecordsStream() reads binary files in records of a specified size (you pass to it a folder name and the records’ size) and returns a DStream containing arrays of bytes (Array[Byte])
+
+- fileStream() requires to parameterize it with classes for key type, value type, and input format (a subclass of Hadoop’s
+NewInputFormat) for reading HDFS files. The resulting DStream will contain tuples with two elements of the specified key and value types
+
+* SOCKET INPUT STREAMS
+
+- socketTextStream() returns a DStream whose elements are text lines, delimited by newline characters
+
+- socketStream() needs a function for converting Java InputStreamobjects (for reading binary data) into target objects that will be elements of the resulting DStream.
+
+
+9) External data sources
+
+Kafka is a distributed, fast, scalable publish-subscribe messaging system. It persists all messages and is capable of acting as a replay queue.
+
+To use Kafka, you need to add Kafka library and Spark Kafka connector library to its classpath.
+
+spark-shell --master local[4] --packages org.apache.spark:spark-
+➥ streaming-kafka-0-8_2.11:1.6.1,org.apache.kafka:kafka_2.11:0.8.2.1
+
+* USING THE SPARK KAFKA CONNECTOR
+
+val kafkaReceiverParams = Map[String, String](
+ "metadata.broker.list" -> "192.168.10.2:9092")
+ 
+import org.apache.spark.streaming.kafka.KafkaUtils
+val kafkaStream = KafkaUtils.
+ createDirectStream[String, String, StringDecoder, StringDecoder](ssc, 
+ kafkaReceiverParams, Set("orders")
+ 
+* WRITING MESSAGES TO KAFKA
+
+This is accomplished with the DStream foreachRDD method. You can use it to perform an arbitrary action on each RDD in a DStream.
+
+def foreachRDD(foreachFunc: RDD[T] => Unit): Unit
+def foreachRDD(foreachFunc: (RDD[T], Time) => Unit): Unit
+
+For instance,
+
+finalStream.foreachRDD((rdd) => {
+   val prop = new java.util.Properties
+   prop.put("metadata.broker.list", "192.168.10.2:9092") 
+   rdd.foreachPartition((iter) => {
+      val p = new Producer[Array[Byte], Array[Byte]](new ProducerConfig(prop))
+      iter.foreach(x => p.send(new KeyedMessage("metric", x.toString.toCharArray.map(_.toByte))))
+      p.close() 
+   })
+}
