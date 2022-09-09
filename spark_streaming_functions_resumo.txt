@@ -2,8 +2,12 @@ Source for more details:
 https://spark.apache.org/docs/3.1.1/api/python/reference/pyspark.html
 
 
+
 Manipulating Spark Streaming
 ============================
+
+Spark Streaming was introduced in Spark 1.3 using DStream API (RDD).
+ 
 
 1) Creating A Streaming Context
 
@@ -155,3 +159,113 @@ finalStream.foreachRDD((rdd) => {
       p.close() 
    })
 }
+
+
+Manipulating Structured Streaming
+=================================
+
+Structured Streaming was introduced in Spark 1.6 using Structured API (Dataframe and Datasets).
+
+
+2) Creating A Structured Streaming
+
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
+val mobileDataSchema = new StructType().add("id", StringType, false)
+                       .add("action", StringType, false)
+                       .add("ts", TimestampType, false)
+
+val mobileSSDF = spark.readStream.schema(mobileDataSchema).json("/<path>/chapter6/data/input")
+
+
+3) Manipulating Structured Streaming
+
+val actionCountDF = mobileSSDF.groupBy(window($"ts", "10 minutes"), $"action").count
+
+
+4) Saving Results To A Sink
+
+val mobileConsoleSQ = actionCountDF.writeStream
+ .format("console").option("truncate", "false")
+ .outputMode("complete")
+ 
+
+5) Starting Streaming Computation
+
+mobileConsoleSQ.start()
+
+mobileConsoleSQ.awaitTermination()
+
+mobileConsoleSQ.status
+ 
+mobileConsoleSQ.lastProgres
+
+
+
+6) Data Sources
+
+• Kafka source: require Apache Kafka with version 0.10 or higher. 
+This is the most popular data source in a production environment. 
+
+• File source: Files are located on either the local file system, HDFS, 
+or S3. As new files are dropped into a directory, this data source 
+will pick them up for processing. Commonly used file formats are 
+supported, such as text, CSV, JSON, ORC, and Parquet. 
+
+• Socket source: This is for testing purposes only. It reads UTF-8 data 
+from a socket listening on a certain host and port.
+
+• Rate source: This is for testing and benchmark purposes only. This 
+source can be configured to generate a number of events per second, 
+where each event consists of a timestamp and a monotonically 
+increased value.
+
+
+7) Output Modes
+
+• Append mode: This is the default mode if output mode is not 
+specified. In this mode, only new rows that were appended to the 
+result table will be sent to the specified output sink
+
+• Complete mode: The entire result table will be written to the output sink.
+
+• Update mode: Only the rows that were updated in the result table will 
+be written to the output sink. For the rows that were not changed, 
+they will not be written out
+
+
+8) Data Sinks
+
+• Kafka sink: require Apache Kafka with version 0.10 or higher. There 
+is a specific set of settings to connect to a Kafka cluster. Please refer to 
+the Kafka Integration Guide on the Spark website for more details.
+
+• File sink: This is a destination on a file system, HDFS, or S3. 
+Commonly used file formats are supported, such as text, CSV, JSON, 
+ORC, and Parquet. See the DataStreamReader interface for an up-todate list of supported file formats.
+
+• Foreach sink: This is meant for running arbitrary computations on the 
+rows in the output.
+
+• Console sink: This is for testing and debugging purposes only and 
+when working with low-volume data. The output is printed to the 
+console on every trigger.
+
+• Memory sink: This is for testing and debugging purposes only when 
+working with low-volume data. It uses the memory of the driver to 
+store the output
+
+
+9) Trigger Types
+
+* Not specified(default): For this default type, Spark will use the micro-batch mode and process the next 
+batch of data as soon as the previous batch of data has completed processing.
+
+* Fixed interval: For this type, Spark will use the micro-batch mode and process the batch of data 
+based on the user-provided interval. If for whatever reason the processing of the 
+previous batch of data takes longer than the interval, then the next batch of data 
+is processed immediately after the previous one is completed.
+
+* One-time:  This trigger type is meant to be used for one-time processing of the available 
+batch of data, and Spark will immediately stop the streaming application once 
+the processing is completed.
