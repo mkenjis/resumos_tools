@@ -168,7 +168,7 @@ scala> val postsVotes = postsDf.join(votesDf, postsDf("id") === 'postId)
 Running SQL in SparkSQL
 =======================
 
-SparkSQL can run SQL commands natively. Spark supports standard ANSI SQL and HiveQL.
+SparkSQL can run SQL commands natively. Spark supports standard ANSI SQL 2003 compliant and HiveQL.
 
 To enable Hive functionalities in Spark (HiveQL and access to Hive tables and community-built UDFs), enable Hive support in Spark.
 

@@ -17,20 +17,29 @@ There are two types of RDD operations:
 Manipulating Spark RDDs
 =======================
 
-1) Creating RDDs
+1) Creating Spark Context instance
+
+import org.apache.spark.SparkContext._
+import org.apache.spark.SparkConf
+
+val conf = new SparkConf().setAppName("Counting Lines").setMaster("spark://master:7077")
+val sc = new SparkContext(conf)
+ 
+
+2) Creating RDDs
 
 val licLines = sc.textFile("numbers.txt")
 val numberRDD = sc.parallelize(List(1,2,3,4,5,6,7,8,9,10), 2)
 
 
-2) rdd.map(func: (T) => U): RDD[U]
+3) rdd.map(func: (T) => U): RDD[U]
 
 returns a RDD with each element transformed by func.
 
 val numbersSquared = numberRDD.map(num => num * num)
 
 
-3) rdd.flatMap(func: (T) => Iterable[U]): RDD[U]
+4) rdd.flatMap(func: (T) => Iterable[U]): RDD[U]
 
 returns a RDD with elements of Iterable flatten out.
 
@@ -39,14 +48,14 @@ scala> ids.collect
 res11: Array[String] = Array(15, 16, 20, 20, 77, 80, 94, 94, 98, 16, 31, 31, 15, 20)
 
 
-4) rdd.filter(func: (T)): RDD[T]
+5) rdd.filter(func: (T)): RDD[T]
 
 returns a RDD with elements that satisfy func.
 
 scala> val bsdLines = licLines.filter(line => line.contains("BSD"))
 
 
-5) rdd.reduce(func: (V, V) => V): V
+6) rdd.reduce(func: (V, V) => V): V
 
 reduces the elements of this RDD using the specified commutative and associative binary operator.
 
@@ -54,7 +63,7 @@ scala> val numberRDD = sc.parallelize(List(1,2,3,4,5,6,7,8,9,10), 2)
 scala> numberRDD.reduce( (x, y) => x + y )
 
 
-3) rdd.distinct(): RDD[T]
+7) rdd.distinct(): RDD[T]
 
 returns a RDD with unique elements
 
@@ -64,12 +73,12 @@ scala> uniqueIds.collect
 res15: Array[Int] = Array(16, 80, 98, 20, 94, 15, 77, 31
 
 
-4) rdd.take(N), rdd.takeOrdered(N, [order]), rdd.top(N, [order])
+8) rdd.take(N), rdd.takeOrdered(N, [order]), rdd.top(N, [order])
 
 returns N records from RDD to driver program.
 
 
-5) rdd.collect(), rdd.first(), rdd.last(), rdd.count()
+9) rdd.collect(), rdd.first(), rdd.last(), rdd.count()
 
 
 
