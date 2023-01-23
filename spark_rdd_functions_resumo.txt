@@ -4,20 +4,20 @@ https://spark.apache.org/docs/3.1.1/api/python/reference/pyspark.html
 
 Resilient Distributed Datasets (RDDs)
 
-The RDD is the fundamental abstraction in Spark. It represents a collection of elements that is
+RDD is the core data abstraction in Spark. It represents a collection of objects that is
 - Immutable (read-only)
 - Resilient (fault-tolerant)
 - Distributed (dataset spread out to more than one node)
 
 There are two types of RDD operations: 
-* Transformations produce a new RDD by performing some data manipulation on another RDD. 
-* Actions trigger a computation to return the result to the calling program or to perform some actions on an RDD’s elements.
+* Transformations - produce a new RDD by performing some data manipulation on source RDD. 
+* Actions - trigger a computation to return the result to the calling program or to perform some actions on an RDD’s elements.
 
 
 Manipulating Spark RDDs
 =======================
 
-1) Creating Spark Context instance
+1) Creating SparkContext instance
 
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
@@ -34,14 +34,14 @@ val numberRDD = sc.parallelize(List(1,2,3,4,5,6,7,8,9,10), 2)
 
 3) rdd.map(func: (T) => U): RDD[U]
 
-returns a RDD with each element transformed by func.
+Returns a RDD with each element transformed by func.
 
 val numbersSquared = numberRDD.map(num => num * num)
 
 
 4) rdd.flatMap(func: (T) => Iterable[U]): RDD[U]
 
-returns a RDD with elements of Iterable flatten out.
+Returns a RDD with elements of Iterable flatten out.
 
 scala> val ids = licLines.flatMap(_.split(","))
 scala> ids.collect
@@ -50,14 +50,14 @@ res11: Array[String] = Array(15, 16, 20, 20, 77, 80, 94, 94, 98, 16, 31, 31, 15,
 
 5) rdd.filter(func: (T)): RDD[T]
 
-returns a RDD with elements that satisfy func.
+Returns a RDD with elements that satisfy func condition.
 
 scala> val bsdLines = licLines.filter(line => line.contains("BSD"))
 
 
 6) rdd.reduce(func: (V, V) => V): V
 
-reduces the elements of this RDD using the specified commutative and associative binary operator.
+Reduces the RDD elements using the specified commutative and associative binary operator.
 
 scala> val numberRDD = sc.parallelize(List(1,2,3,4,5,6,7,8,9,10), 2)
 scala> numberRDD.reduce( (x, y) => x + y )
@@ -65,7 +65,7 @@ scala> numberRDD.reduce( (x, y) => x + y )
 
 7) rdd.distinct(): RDD[T]
 
-returns a RDD with unique elements
+Returns a RDD with unique elements
 
 scala> val intIds = ids.map(_.toInt)
 scala> val uniqueIds = intIds.distinct
@@ -75,24 +75,25 @@ res15: Array[Int] = Array(16, 80, 98, 20, 94, 15, 77, 31
 
 8) rdd.take(N), rdd.takeOrdered(N, [order]), rdd.top(N, [order])
 
-returns N records from RDD to driver program.
+Returns N records from RDD to driver program.
 
 
 9) rdd.collect(), rdd.first(), rdd.last(), rdd.count()
 
 
 
-Manipulating Spark Pair RDDs
-============================
+Manipulating Pair RDDs
+======================
 
 1) Creating Pair RDDs
 
-RDDs created as two-element tuples (or pair RDDs) get implicitly converted to instance of class PairRDDFunctions, and pair RDD functions automatically become available through the implicit conversion.
+RDDs created as two-element tuples (or pair RDDs) get implicitly converted to an instance of class PairRDDFunctions.
+Pair RDD functions automatically become available through the implicit conversion.
 
-pairdd = rdd.map( x => (K, V) )
-pairdd = rdd.keyBy(f(x))
+scala> val pairdd = rdd.map( x => (K, V) )
+scala> val pairdd = rdd.keyBy(f(x))
 
-scala> val tranFile = sc.textFile("first-edition/ch04/" + "ch04_data_transactions.txt") 
+scala> val tranFile = sc.textFile("first-edition/ch04/ch04_data_transactions.txt") 
 scala> val tranData = tranFile.map(_.split("#")) 
 scala> var transByCust = tranData.map(tran => (tran(2).toInt, tran))
 
@@ -108,7 +109,7 @@ res0: Long = 100
 
 3) pairrdd.countByKey(): Dict[K, int]
 
-returns scala.collection.Map[Int,Long]
+Returns scala.collection.Map[Int,Long]
 
 scala> transByCust.countByKey()
 res1: scala.collection.Map[Int,Long] = Map(69 -> 7, 88 -> 5, 5 -> 11, 
@@ -119,7 +120,7 @@ res1: scala.collection.Map[Int,Long] = Map(69 -> 7, 88 -> 5, 5 -> 11,
 
 4) pairrdd.lookup(K): RDD[(K, U)]
 
-returns all elements with key = <key>
+Returns all elements with key = <key>
 
 scala> transByCust.lookup(53)
 res1: Seq[Array[String]] = WrappedArray(Array(2015-03-30, 6:18 AM, 53, 42, 5, 2197.85), Array(2015-03-30, 4:42 AM, 53, 3, 6, 9182.08), ...

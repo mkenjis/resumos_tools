@@ -1,0 +1,22 @@
+ubuntu18: 
+
+hangs 2 min on restart at network services
+
+1) cd /etc/netplan
+   edit 50-cloud-init.yaml
+   add "optional: true" inside enp0s3
+   
+2) install ifupdown
+   apt-get install ifupdown
+   cd /etc/network
+   edit interfaces file
+   
+auto lo
+iface lo inet lookback
+
+auto enp0s3
+iface enp0s3 inet dhcp
+
+3) remove cloud-init services
+   dpkg-reconfigure cloud-init (uncheck everything except "None")
+   reboot

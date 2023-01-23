@@ -1,0 +1,144 @@
+
+// recreate docker.sock when got permission error from docker client
+
+>> run in python3 as root
+import socket as s;
+sock = s.socket(s.AF_UNIX);
+sock.bind('/var/run/docker.sock');
+
+>> give appropriate permission
+chmod 660 /var/run/docker.sock
+ghgrp docker /var/run/docker.sock
+
+--------------------
+
+sed '/http/a\\tclient_max_body_size 150M;' <nginx.conf >nginx.txt
+sed 's/ssl_protocols TLSv1 TLSv1.1/ssl_protocols/g' <nginx.txt >nginx.txt1
+
+
+--------------------------
+
+// install docker-ce-cli
+
+mac : brew install docker
+linux : apt install docker-ce-cli
+windows : choco install docker-cli
+
+via SSH:
+
+1) executar ssh-keygen
+
+2) appendar idrsa.pub no authorized_key no host destino
+
+3) testar conexao ssh no usuario destino
+
+4) export DOCKER_HOST=ssh://deployer@<IP>
+
+5) docker info
+
+via TCP:
+
+1) setup docker engine (https://dockerlabs.collabnix.com/beginners/components/daemon/access-daemon-externally.html)
+
+2) export DOCKER_HOST=tcp://<IP>:2375
+
+3) docker info
+
+----------------
+
+VS download : code.visualstudio.com
+ 
+vscode.dev - web visual studio
+
+github.dev
+
+----------------
+
+docker-compose exec api_tst cat /etc/hosts
+
+--------------
+docker container ls --format '{{json .}}
+
+docker container ls --format 'table {{.ID}}\t{{.Status}}\t{{.Names}}'
+
+docker container stats --format 'table {{.ID}}\t{{.Name}}\t{{.CPU%}}{{.MEM USAGE}}{{.NET I/O}}{{.BLOCK I/O}}'
+
+watch -n1 docker container top <container id> o uid,pid,time,cmd
+
+-- nao vale para container, image e network
+docker service inspect <id> --pretty
+docker node inspect <id>
+
+---------------
+
+alias docker_list="docker container ls --format 'table {{.ID}}\t{{.Names}}\t{{.CreatedAt}}\t{{.State}}\t{{.Status}}'"
+alias docker_shell='f(){ docker container exec -it "$1" bash; }; f'
+alias docker_stats="docker container stats --format 'table {{.ID}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}'"
+alias docker_proc='f(){ watch -n1 docker container top "$1" o uid,pid,time,cmd; }; f'
+alias docker_top='f(){ docker container exec -it "$1" top -c -d1; }; f'
+
+---------------
+
+
+general docker-compose & docker stack view commands
+--------------------
+docker-compose ps
+docker-compose top
+
+docker container ls -s
+
+docker stack ps <stack-name>
+docker stack services <stack-name>
+
+docker node inspect <node-name> --pretty
+docker service inspect <service-name> --pretty
+
+
+backup swarm config
+-------------------
+cp -R /var/lib/docker/swarm ~/backup
+
+restore swarm
+-------------
+cp -R ~/backup /var/lib/docker/swarm
+docker swarm init --force-new-cluster --advertise-addr <IP>
+
+restricting manager to run any service
+--------------------------------------
+docker node update --availability drain <node-name>
+docker node update --availability active <node-name>   // undone
+
+restricting service to run any node
+-----------------------------------
+docker service update --constraint-add node.role==worker <service>
+
+replicated service (runs N replicas along nodes even having more than one)
+---------------------------------------------------
+docker service update --mode replicated --replicas N <service>
+
+global service (runs one instance in every node)
+-----------------------------------
+docker service update --mode global <service>
+
+
+DNS load balance for containers
+-------------------------------
+docker network create dude
+docker container run -d --net dude --network-alias search elasticsearch:2  // 1st container
+docker container run -d --net dude --network-alias search elasticsearch:2  // 2nd container
+
+docker container run --rm -net dude centos curl -s search:9200  ( elasticsearch names alternate between 1st and 2nd container)
+
+
+// Docker In Docker
+
+docker network create netapp
+
+Start a daemon instance
+
+> docker container run --privileged --name docker_dind -d --network netapp --network-alias docker -e DOCKER_TLS_CERTDIR=/certs -v dind_certs-ca:/certs/ca -v dind_certs_client:/certs/client docker:20.10.16-dind
+
+Connect to it from a second container
+
+> docker container run --name dck2 -it --network netapp -e DOCKER_TLS_CERTDIR=/certs -v dind_certs_client:/certs/client:ro docker:20.10.16 sh
+

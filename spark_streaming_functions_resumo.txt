@@ -167,109 +167,123 @@ Manipulating Structured Streaming
 Structured Streaming use Dataframe/Dataset API and Spark SQL to support an incremental processing of data stream.
 
 
-2) Creating A Structured Streaming
+declare a schema to read
+--------------------------
 
-import org.apache.spark.sql.types._
-import org.apache.spark.sql.functions._
 val mobileDataSchema = new StructType().add("id", StringType, false)
                        .add("action", StringType, false)
                        .add("ts", TimestampType, false)
 
-val mobileSSDF = spark.readStream.schema(mobileDataSchema).json("/<path>/chapter6/data/input")
 
-Built-in stream data sources : files, socket, Kafka
+create streaming DF from data source
+------------------------------------
+
+// file
+spark.readStream.format("json").
+                 schema(fileSchema).
+				 load()
+// socket
+spark.readStream.format("socket").
+                 option("host","localhost").
+				 option("port",9999).
+				 load()
+// kafka
+spark.readStream.format("kafka").
+                 option("kafka.bootstrap.servers", "host1:port1,host2:port2").
+				 option("subscribe", "events").
+				 load()
+	  
+write table result to data sink
+-------------------------------
+
+format():
+=========
+df.writeStream.format("<type>").
+               outputMode("<mode>").
+			   trigger(Trigger.ProcessingTime("5 second").
+			   option("checkpointLocation", checkpointDir).
+			   start()
+
+format : kafka - inform following options:
+                .option("kafka.bootstrap.servers", "host1:port1,host2:port2")
+                .option("subscribe", "events")
+	     file (json,csv,parquet,orc) - common destinations local FS, HDFS, or S3
+	     console - print output on console
+	     memory - use driver's memory to store the output
+
+outputMode : append - only new rows in result table is written (stateless queries)
+	         complete - entire result table is written (stateful queries)
+	         update - only new/updated rows in result table is written (stateful queries)
+			 
+* stateful - queries with groupBy, joins and aggregations
+  stateless - queries that only cleans, transforms or restructures data 
+
+trigger : default - process as soon as previous micro-batched is processed
+          ProcessingTime - process at fixed user-provided interval
+		  once - process whole batch data once
+
+foreachBatch():
+==============
+def writeCountsToCassandra(updatedCountsDF: DataFrame, batchId: Long) {
+ // Use Cassandra batch data source to write the updated counts
+ updatedCountsDF
+ .write
+ .format("org.apache.spark.sql.cassandra")
+ .options(Map("table" -> tableName, "keyspace" -> keyspaceName))
+ .mode("append")
+ .save()
+
+df
+ .writeStream
+ .foreachBatch(writeCountsToCassandra _)
+ .outputMode("update")
+ .option("checkpointLocation", checkpointDir)
+ .start()
+
+foreach():
+=========
+import org.apache.spark.sql.ForeachWriter
+val foreachWriter = new ForeachWriter[String] { // typed with Strings
+  def open(partitionId: Long, epochId: Long): Boolean = {
+  // Open connection to data store
+  // Return true if write should continue
+  }
+   def process(record: String): Unit = {
+  // Write string to data store using opened connection
+  }
+  def close(errorOrNull: Throwable): Unit = {
+  // Close the connection
+  }
+}
+resultDSofStrings.writeStream.foreach(foreachWriter).start()
 
 
-3) Manipulating Structured Streaming
+get status streaming DF
+-----------------------
 
-val actionCountDF = mobileSSDF.groupBy(window($"ts", "10 minutes"), $"action").count
+query.lastProgress()
+query.status()
 
 
-4) Saving Results To A Sink
+handling event-time events
+--------------------------
 
-val mobileConsoleSQ = actionCountDF.writeStream
- .format("console").option("truncate", "false")
- .outputMode("complete")
+event-time window
+=================
+sensorReadings
+ .groupBy("sensorId", window("eventTime", "5 minute"))
+ .count()
  
-Built-in stream data sinks: files, Kafka, console, memory, foreach, foreachBatch
- 
-
-5) Starting Streaming Computation
-
-mobileConsoleSQ.start() - starts the streaming job
-
-mobileConsoleSQ.awaitTermination() - blocks the streaming background process from exit
-
-mobileConsoleSQ.status - current status of streaming query
- 
-mobileConsoleSQ.lastProgress - metrics and statistics of last run of streaming query
+event-time window with sliding 
+==============================
+sensorReadings
+ .groupBy("sensorId", window("eventTime", "10 minute", "5 minute"))
+ .count()
 
 
-
-6) Data Sources
-
-• Kafka source: require Apache Kafka with version 0.10 or higher. 
-This is the most popular data source in a production environment. 
-
-• File source: Files are located on either the local file system, HDFS, 
-or S3. As new files are dropped into a directory, this data source 
-will pick them up for processing. Commonly used file formats are 
-supported, such as text, CSV, JSON, ORC, and Parquet. 
-
-• Socket source: This is for testing purposes only. It reads UTF-8 data 
-from a socket listening on a certain host and port.
-
-• Rate source: This is for testing and benchmark purposes only. This 
-source can be configured to generate a number of events per second, 
-where each event consists of a timestamp and a monotonically 
-increased value.
-
-
-7) Output Modes
-
-• Append mode: This is the default mode if output mode is not 
-specified. In this mode, only new rows that were appended to the 
-result table will be sent to the specified output sink
-
-• Complete mode: The entire result table will be written to the output sink.
-
-• Update mode: Only the rows that were updated in the result table will 
-be written to the output sink. For the rows that were not changed, 
-they will not be written out
-
-
-8) Data Sinks
-
-• Kafka sink: require Apache Kafka with version 0.10 or higher. There 
-is a specific set of settings to connect to a Kafka cluster. Please refer to 
-the Kafka Integration Guide on the Spark website for more details.
-
-• File sink: This is a destination on a file system, HDFS, or S3. 
-Commonly used file formats are supported, such as text, CSV, JSON, 
-ORC, and Parquet. See the DataStreamReader interface for an up-todate list of supported file formats.
-
-• Foreach sink: This is meant for running arbitrary computations on the 
-rows in the output.
-
-• Console sink: This is for testing and debugging purposes only and 
-when working with low-volume data. The output is printed to the 
-console on every trigger.
-
-• Memory sink: This is for testing and debugging purposes only when 
-working with low-volume data. It uses the memory of the driver to 
-store the output
-
-
-9) Trigger Types
-
-* Not specified(default): For this default type, Spark will use the micro-batch mode and process the next 
-batch of data as soon as the previous batch of data has completed processing.
-
-* Fixed interval: For this type, Spark will use the micro-batch mode and process the batch of data 
-based on the user-provided interval. If for whatever reason the processing of the 
-previous batch of data takes longer than the interval, then the next batch of data 
-is processed immediately after the previous one is completed.
-
-* One-time:  This trigger type is meant to be used for one-time processing of the available 
-batch of data, and Spark will immediately stop the streaming application once 
-the processing is completed.
+event-time window with sliding and watermark
+============================================
+sensorReadings
+ .withWatermark("eventTime", "10 minutes")
+ .groupBy("sensorId", window("eventTime", "10 minutes", "5 minute"))
+ .mean("value")

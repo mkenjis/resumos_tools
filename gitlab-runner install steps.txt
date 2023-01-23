@@ -1,0 +1,38 @@
+------- criando um gitlab-runner processo unix
+
+sudo curl -L --output /usr/local/bin/gitlab-runner "https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64"
+
+sudo chmod +x /usr/local/bin/gitlab-runner
+
+sudo useradd --comment 'GitLab Runner' --create-home gitlab-runner --shell /bin/bash
+
+sudo gitlab-runner install --user=gitlab-runner --working-directory=/home/gitlab-runner
+sudo gitlab-runner start
+
+sudo gitlab-runner register -n \
+  --url https://gitlab.dcide.info/ \
+  --registration-token -V2bzkzAWzLYfWUDReVt \
+  --executor docker \
+  --description "fmb_teste_gitlab_runner_dind_0" \
+  --docker-image "docker:20.10.16" \
+  --docker-privileged \
+  --docker-volumes "/certs/client"
+
+  
+------- criando um gitlab-runner container (sem instalar gitlab-runner binaries)
+
+docker pull gitlab/gitlab-runner:latest
+
+docker run -d --name gitlab-runner --restart always 
+-v <dir>/gitlab-runner/config:/etc/gitlab-runner 
+-v /var/run/docker.sock:/var/run/docker.sock gitlab/gitlab-runner:latest
+
+docker container exec -it gitlab-runner bash
+
+inside container:
+gitlab-runner register -n \
+  --url https://gitlab.dcide.info/ \
+  --registration-token -V2bzkzAWzLYfWUDReVt \
+  --executor docker \
+  --description "fmb_teste_gitrunner_inside_docker" \
+  --docker-image "docker:20.10.16"

@@ -1,0 +1,17 @@
+# make a full backup of all our InnoDB tables in all databases
+# and it flushes the MySQL binary logs at the moment of the full backup
+
+mysqldump --single-transaction --flush-logs --master-data=2 \
+         --all-databases > backup_sunday_1_PM.sql
+# After executing this command, the data directory contains a new binary log file, mysql-bin.000005, 
+because the --flush-logs option causes the server to flush its logs
+		 
+# previous binary log files are not need to recovery. only from after the flush point 
+
+KEEP THE BINARY LOG FILES OUT OF SAME DISK AS DATA FILES TO AVOID SINGLE POINT OF FAILURE
+
+# then, create a new MySQL server instance
+
+mysql -uroot -p <backup_sunday_1_PM.sql
+
+mysqlbinlog mysql-bin.000005 | mysql -uroot -p

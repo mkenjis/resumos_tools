@@ -1,0 +1,62 @@
+<?php
+
+use Nexilo\XdevApiClientBuilder;
+
+$string = 'mysqlx://surveys:123456@10.0.13.45?connect-timeout=500&ssl-mode=disabled';
+return $this->connection = XdevApiClientBuilder::getInstance($string)->getSession();
+
+
+<?php
+
+# PHP 7
+$conexao = mysqli_connect('10.0.13.45','surveys','123456');
+$banco = mysqli_select_db($conexao,'surveys');
+mysqli_set_charset($conexao,'utf8');
+
+$sql = mysqli_query($conexao,"select * from tags") or die("Erro");
+while($dados=mysqli_fetch_assoc($sql))
+{
+echo $dados['tag'].'<br>';
+}
+?>
+
+-----------
+
+<?php
+try {
+    $session = mysql_xdevapi\getSession("mysqlx://surveys:123456@10.0.13.45");
+} catch(Exception $e) {
+    die("Connection could not be established: " . $e->getMessage());
+}
+ 
+$schema = $session->getSchema("surveys");
+$collection = $schema->getCollection("tags");
+
+$result = $collection->find()->execute();
+foreach ($result as $doc) {
+  echo "${doc["id"]} is a ${doc["tag"]}.\n";
+}
+?>
+
+<?php
+try {
+    $session = mysql_xdevapi\getSession("mysqlx://surveys:1234567@10.0.13.45");
+} catch(Exception $e) {
+    die("Connection could not be established: " . $e->getMessage());
+}
+ 
+$schema = $session->getSchema("surveys");
+$collection = $schema->getCollection("tags");
+
+$result = $collection->find()->execute();
+foreach ($result as $doc) {
+  echo $doc["tag"]."<br>";
+}
+echo "<br>teste<br>teste<br>";
+?>
+
+----------------------
+
+php > $conn = oci_connect('alupar_fmb_hml', 'hm!Fm8Alup85', 'ora19se2-hml-dcide.c5n2o7ctaoi7.sa-east-1.rds.amazonaws.com:1521/ORCL');
+php > $stid = oci_parse($conn, 'SELECT count(*) FROM d_operations');
+php > oci_execute($stid);

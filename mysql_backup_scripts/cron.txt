@@ -1,0 +1,5 @@
+# run backup
+0 3 * * 2-6 bash /root/mysql_hot_backup.sh /data/mysql/backup >/tmp/backup.log 2>&1
+
+# run archive logs
+*/5 * * * * bash /root/mysql_archive_binlog.sh
