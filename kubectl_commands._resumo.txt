@@ -1,0 +1,168 @@
+
+kubectl run <pod> --image=<image>
+kubectl get pods [ --watch ] [ -o wide ]
+kubectl describe pod <pod>
+kubectl edit pod <pod>
+
+-------------------
+Pods
+
+ex: primeiro-pod.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: primeiro-pod
+spec:
+  containers:
+    - name: nginx-containers
+	  image: nginx:latest
+	  
+kubectl apply -f primeiro-pod.yml  ( cria/atualiza pod )
+
+-------------------
+
+kubectl delete pod <pod>  ( imperativo )
+kubectl delete -f primeiro-pod.yml  ( declarativo )
+
+kubectl exec -it <pod> -- bash
+
+-------------------
+ClusterIP
+
+ex: pod2.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod2
+  labels:
+    app: segundo-pod
+spec:
+  containers:
+    - name: container-pod2
+	  image: nginx:latest
+	  ports:
+	    - containerPort: 80
+		
+ex: svc-pod2.yml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-pod2
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9000
+	  targetPort: 80
+  selector:
+    app: segundo-pod
+
+kubectl apply -f pod2.yml  ( cria/atualiza pod )
+kubectl apply -f svc-pod2.yml  ( cria/atualiza service )
+
+-------------------
+kubectl get svc -o wide
+kubectl describe svc <service>
+
+kubectl delete -f svc-pod2.yml  ( declarativo )
+
+-------------------
+NodePort
+
+ex: pod1.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod1
+  labels:
+    app: primeiro-pod
+spec:
+  containers:
+    - name: container-pod1
+	  image: nginx:latest
+	  ports:
+	    - containerPort: 80
+		
+ex: svc-pod1.yml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-pod1
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+	 # targetPort: 80
+	  nodePort: 30000-32767  
+  selector:
+    app: primeiro-pod
+
+kubectl apply -f pod1.yml  ( cria/atualiza pod )
+kubectl apply -f svc-pod1.yml  ( cria/atualiza service )
+
+-------------------
+
+kubectl delete pods --all
+kubectl delete svc --all
+
+-------------------
+
+Env variables
+
+ex: db.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db
+  labels:
+    app: db-pod
+spec:
+  containers:
+    - name: db-container
+	  image: mysql:latest
+	  ports:
+	    - containerPort: 3306
+	  env:
+	    - name: "MYSQL_ROOT_PASSWORD"
+		  value: xxx
+		- name: "MYSQL_DATABASE"
+		  value: xxx
+		- name: "MYSQL_PASSWORD"
+		  value: xxx
+		  
+-------------------
+
+ConfigMap
+
+ex: configmap.yml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-config
+data:
+  MYSQL_ROOT_PASSWORD: xxx
+  MYSQL_DATABASE: xxx
+  MYSQL_PASSWORD: xxx
+  
+kubectl apply -f configmap.yml
+kubectl get configmap
+kubectl describe configmap <config>
+
+No Pod:
+
+spec:
+  containers:
+    - name: db-container
+	  image: mysql:latest
+	  ports:
+	    - containerPort: 3306
+	  envFrom:
+	    configMapRef:
+		  name: db-config
+		  
