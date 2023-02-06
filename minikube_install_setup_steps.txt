@@ -1,5 +1,5 @@
 
-Install minikube on Ubuntu 20 VM :
+Install minikube on Ubuntu 20 VM using VirtualBox :
 
 0) remove cloud-init services
    dpkg-reconfigure cloud-init (uncheck everything except "None")

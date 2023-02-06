@@ -1,3 +1,7 @@
+kubectl version
+kubectl get all 
+
+-------------------
 
 kubectl run <pod> --image=<image>
 kubectl get pods [ --watch ] [ -o wide ]
@@ -15,7 +19,7 @@ metadata:
   name: primeiro-pod
 spec:
   containers:
-    - name: nginx-containers
+    - name: nginx-container
 	  image: nginx:latest
 	  
 kubectl apply -f primeiro-pod.yml  ( cria/atualiza pod )
