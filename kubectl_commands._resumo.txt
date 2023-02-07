@@ -114,7 +114,6 @@ kubectl delete pods --all
 kubectl delete svc --all
 
 -------------------
-
 Env variables
 
 ex: db.yml
@@ -140,7 +139,6 @@ spec:
 		  value: xxx
 		  
 -------------------
-
 ConfigMap
 
 ex: configmap.yml
@@ -170,3 +168,123 @@ spec:
 	    configMapRef:
 		  name: db-config
 		  
+-------------------
+ReplicaSets - automatically manages # pods up in case of failures, starting new pods
+
+Ex : pod1-replicatset.yml
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: pod1-replicaset
+spec:
+  replicas: 3
+  template:
+	metadata:                   --+
+	  name: pod1                  |
+	  labels:                     |
+		app: pod1                 |
+	spec:                          >  pod & container definition
+	  containers:                 |
+		- name: pod1-container    |
+		  image: nginx:latest     |
+		  ports:                  |
+			- containerPort: 80 --+
+  selector:
+    matchLabels:
+	  app: pod1
+
+
+kubectl apply -f pod1-replicatset.yml
+kubectl get replicasets / rs ( --watch )
+
+kubectl delete -f pod1-replicatset.yml
+
+-------------------
+Deployment - controls and register revisions between deployments.
+           - allow rollbacks between deployments.
+
++--------------------------------------------		   
+| Deployment
+| +------------------------------------------
+| | ReplicaSet
+| | +------+  +------+  +------+  +------+  
+| | | Pod1 |  | Pod2 |  | Pod3 |  | Pod4 |  
+| | +------+  +------+  +------+  +------+  
+| +------------------------------------------
++--------------------------------------------
+
+Ex : nginx-deployment.yml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  template:
+	metadata:                   --+
+	  name: nginx-pod             |
+	  labels:                     |
+		app: nginx-po             |
+	spec:                          >  pod & container definition
+	  containers:                 |
+		- name: nginx-container   |
+		  image: nginx:stable     |
+		  ports:                  |
+			- containerPort: 80 --+
+  selector:
+    matchLabels:
+	  app: nginx-pod
+
+
+kubectl apply -f nginx-deployment.yml
+kubectl get deployments ( --watch )
+
+Rollout
+-------
+kubectl rollout history deployment <deploy>
+kubectl apply -f nginx-deployment.yml --record
+kubectl annotate deployment <deploy> kubernetes.io/change-cause="deploy image latest"
+
+Rollback
+--------
+kubectl rollout undo deployment <deploy> --to-revision=2
+
+kubectl delete deployment <deploy>
+kubectl delete -f nginx-deployment.yml
+
+-------------------
+Volumes - are persistent if containers die but not if pod die.
+        - files created in the volume are kept
+
+Ex : pod-volume.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-volume
+spec:
+  containers:
+    - name: nginx-container
+	  image: nginx:latest
+	  volumeMounts:
+	    - mountPath : /volume1
+		- name : primeiro-volume
+
+    - name: jenkins-container
+	  image: jenkins:alpine
+	  volumeMounts:
+	    - mountPath : /volume1
+		- name : primeiro-volume
+
+  volumes:
+    - name: primeiro-volume
+	  hostPath:
+	    path: /home/data
+		type: Directory / DirectoryOrCreate
+		
+
+kubectl apply -f pod-volume.yml
+
+kubectl exec -it pod-volume --container nginx-container -- bash
