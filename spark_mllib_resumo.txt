@@ -2,22 +2,17 @@ Source for more details:
 https://spark.apache.org/docs/3.1.1/api/python/reference/pyspark.html
 
 
-ML with Spark MLlib API
-=======================
+Spark MLlib API
+===============
 
-MLlib API was introduce in Spark 0.8.
-
-Basically it works on RDD API to provide the ML functionalities.
+MLlib API (introduced in Spark 0.8) works on RDD API to provide ML functionalities.
 
 
-1) Preparing the data
+- load data
 
 import org.apache.spark.mllib.linalg.Vectors
 val housingLines = sc.textFile("first-edition/ch07/housing.data", 6)
 val housingVals = housingLines.map(x => Vectors.dense(x.split(",").map(_.trim().toDouble)))
-
-
-2) Analyzing data distribution
 
 - column statistics
 
@@ -25,7 +20,7 @@ import org.apache.spark.mllib.linalg.distributed.RowMatrix
 val housingMat = new RowMatrix(housingVals)
 val housingStats = housingMat.computeColumnSummaryStatistics()  # returns a MultivariateStatisticalSummary object
 
-housingStats.min / max / mean / variance / normL1 / normL2
+returns housingStats.min / max / mean / variance / normL1 / normL2
 
 - column cosine similarities
 
@@ -36,9 +31,9 @@ val housingColSims = housingMat.columnSimilarities()
 val housingCovar = housingMat.computeCovariance()
 
 
-3) Transforming to labeled points
+- convert to LabeledPoint
 
-Dataset needs to be converted to LabeledPoint class (used in most of Spark’s machine-learning algorithms). 
+most of Spark’s machine-learning algorithms use LabeledPoint class. 
 It contains target value and feature Vector.
 
 import org.apache.spark.mllib.linalg.Vectors
@@ -49,17 +44,17 @@ val housingData = housingVals.map(x => {
 })
 
 
-4) Splitting the data
+- split the dataset
 
 val sets = housingData.randomSplit(Array(0.8, 0.2))
 val housingTrain = sets(0)
 val housingValid = sets(1)
 
 
-5) Feature scaling / mean normalization
+- Feature scaling / mean normalization
 
-Feature scaling means the ranges of data are scaled to comparable sizes.
-Mean normalization means the data is translated so that the averages are roughly zero.
+* Feature scaling means the ranges of data are scaled to comparable sizes.
+* Mean normalization means the data is translated so that the averages are roughly zero.
 
 import org.apache.spark.mllib.feature.StandardScaler 
 val scaler = new StandardScaler(true, true).fit(housingTrain.map(x => x.features)
@@ -68,10 +63,9 @@ val trainScaled = housingTrain.map(x => LabeledPoint(x.label, scaler.transform(x
 val validScaled = housingValid.map(x => LabeledPoint(x.label, scaler.transform(x.features))
 
 
-6) Fitting a linear regression model
+- fit a linear regression model
 
 import org.apache.spark.mllib.regression.LinearRegressionWithSGD
-
 val model = LinearRegressionWithSGD.train(trainScaled, 200, 1.0)
 
 or
@@ -82,88 +76,77 @@ alg.setIntercept(true)
 alg.optimizer.setNumIterations(200)
 trainScaled.cache() 
 validScaled.cache() 
-val model = alg.run(trainScaled
+val model = alg.run(trainScaled)
 
 
-7) Predicting the target values
+- predict & evaluate model performance
 
 val validPredicts = validScaled.map(x => (model.predict(x.features), x.label))
 
-
-8) Evaluating the model’s performance
-
-scala> import org.apache.spark.mllib.evaluation.RegressionMetrics 
-scala> val validMetrics = new RegressionMetrics(validPredicts)
-scala> validMetrics.rootMeanSquaredError
+import org.apache.spark.mllib.evaluation.RegressionMetrics 
+val validMetrics = new RegressionMetrics(validPredicts)
+validMetrics.rootMeanSquaredError
 res1: Double = 4.775608317676729
 
-scala> validMetrics.meanSquaredError
+validMetrics.meanSquaredError
 res2: Double = 22.806434803863162
 
 
-9) Loading and saving the model
-
-- Saving
+- save/load the model
 
 model.save(sc, "chapter07output/model")
-
-- Loading
 
 import org.apache.spark.mllib.regression.LinearRegressionModel
 val model = LinearRegressionModel.load(sc, "ch07output/model")
 
 
 
-ML with Spark ML API
-====================
+Spark ML API
+============
 
-ML API was introduce in Spark 1.2. Spark ML uses DataFrame to work with datasets.
-
-MLlib API wasn’t scalable and extendable enough, nor sufficiently practical for use in real machine learning projects. The goal of Spark ML library is to generalize machine learning operations and streamline machine learning processes.
+ML API (introduced in Spark 1.2) uses DataFrame to work with datasets.
 
 ML API introduces new abstractions — estimators, transformers, and evaluators — that can be combined to form pipelines.
 
 
-1) Preparing the data
+- load data
 
 val df_raw = spark.read.format("csv").
              option("header","true").option("inferSchema","true").
              load("first-edition/ch08/adult.raw")
 
  
-2) Dealing With Categorical Values
+- Categorical Values
 
-* StringIndexer() - converts String categorical values into integer indexes of those values. Takes a DataFrame and fits a StringIndexerModel, which is then used for transformations of a column.
+* StringIndexer() - converts String categorical values into integer indexes by fitting a StringIndexerModel for the column
 
 import org.apache.spark.ml.feature.StringIndexer
 val si = new StringIndexer().setInputCol("col").setOutputCol("newcol")
 val sm = si.fit(df)
 val newdf = sm.transform(df)
 
-* OneHotEncoder() - one-hot encodes a column and puts the results into a new column as a one-hot-encoded sparse Vector.
+* OneHotEncoder() - one-hot encodes a column and puts the results into a new column as sparse Vector.
 
 import org.apache.spark.ml.feature.OneHotEncoder
 val onehotenc = new OneHotEncoder().setInputCol("col").setOutputCol("newcol")
 val newdf = onehotenc.transform(df)
 
 
-3) Merging The Data
-
-* VectorAssembler() - merge all Vectors and columns into a single Vector column containing all the features.
+- VectorAssembler() - merge all Vectors and columns into a single Vector column containing all the features.
 
 import org.apache.spark.ml.feature.VectorAssembler
 val va = new VectorAssembler().setInputCols(df.columns.diff(Array("income"))).setOutputCol("features")
 val points = va.transform(df)
 
 
-4) Splitting the data
+- split dataset
 
 val splits = points.randomSplit(Array(0.8, 0.2))
 val adulttrain = splits(0).cache()
-val adultvalid = splits(1).cache(
+val adultvalid = splits(1).cache()
 
 
-5) Training the logistic regression model
+- fit a logistic regression model
 
 import org.apache.spark.ml.LogisticRegression
 val lr = new LogisticRegression.setRegParam(0.01).setMaxIter(500).setFitIntercept(true)
@@ -171,26 +154,21 @@ val lr = new LogisticRegression.setRegParam(0.01).setMaxIter(500).setFitIntercep
 val lrmodel = lr.fit(adulttrain)
 
 
-6) Predicting the target values
+- predict & evaluating model performance
 
 val validpredicts = lrmodel.transform(adultvalid)
-validpredicts.show()
 
+import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
+val bceval = new BinaryClassificationEvaluator()
 
-7) Evaluating model´s performance
-
-scala> import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
-scala> val bceval = new BinaryClassificationEvaluator()
-bceval: org.apache.spark.ml...
-
-scala> bceval.evaluate(validpredicts)
+bceval.evaluate(validpredicts)
 res0: Double = 0.9039934862200736
 
-scala> bceval.getMetricName
+bceval.getMetricName
 res1: String = areaUnderROC
 
 
-8) Precision And Recall Metrics
+- Precision And Recall Metrics
 
 P =   TP    (precision)
     -------
@@ -205,7 +183,7 @@ f1 =   2PR
 	 P + RDD
 	 
 
-9) PR Curve And ROC Curve
+- PR Curve And ROC Curve
 
 A precision-recall (PR) curve is calculated changing the probability threshold gradually and counting 0 and 1 labels according to probability found at each point, and calculate precision and recall. Then you plot the obtained values on the same graph (precision on the Y-axis and recall on the X-axis)
 
@@ -216,20 +194,20 @@ FPR =   FP
 	  FP + TN
 
 
-10) Loading and saving the model
+- save / load the model
 
-- Persist model and pipeline
+* save model / pipeline
 
 lrmodel.write.overwrite().save("/tmp/logistic-regression-model")
 
 
-- load model and pipeline
+* load model / pipeline
 
 val prevModel = LogisticRegressionModel.load("/tmp/spark-logistic-regression-model")
 
 
 	  
-11) K-Fold Cross-Validation
+- K-Fold Cross-Validation
 
 import org.apache.spark.ml.tuning.CrossValidator
 val cv = new CrossValidator().setEstimator(lr).
@@ -257,25 +235,25 @@ val eval = new BinaryClassificationEvaluator()
 eval.evaluate(bestmodel.transform(adultvalid))
 
 
-12) Other Transformers and Estimators
+- other Transformers and Estimators
 
 * TRANSFORMERS
 
-- Binarizer() - transforms input column values into two groups (0/1) based on specified threshold.
+- Binarizer() - transforms input column values into two groups (0/1).
 
 import org.apache.spark.ml.feature.Binarizer
 val binarizer = new Binarizer().setThreshold(35.6)
                 .setInputCol("temperature").setOutputCol("freezing")
 binarizer.transform(arrival_data).show
 
-- Bucketizer() - transforms input column values into buckets of your choice. Number of buckets and bucket borders are specified by an array of double values.
+- Bucketizer() - transforms input column values into buckets specified by an array of double values.
 
 import org.apache.spark.ml.feature.Bucketizer
 val bucketer = new Bucketizer().setSplits(bucketBorders)
                .setInputCol("temperature").setOutputCol("intensity")
 val output = bucketer.transform(arrival_data)
 
-- Tokenizer() - performs tokenization on a string separated by spaces and returns an array of words. If a different delimiter is used, use RegexTokenizer.
+- Tokenizer() - performs tokenization on a string separated by spaces. If a different delimiter is used, use RegexTokenizer.
 
 import org.apache.spark.ml.feature.Tokenizer
 val tokenizer = new Tokenizer().setInputCol("line").setOutputCol("words")
@@ -289,7 +267,7 @@ val remover = new StopWordsRemover().setStopWords(enStopWords)
               .setInputCol("words").setOutputCol("filtered")
 val cleanedTokens = remover.transform(tokenized)
 
-- HashingTF() - transforms words into a numeric representation (each word mapped into an index by applying a hash function) and computing the frequency of each word in each line.
+- HashingTF() - transforms words into a numeric representation (by applying a hash function) and computing the frequency of each word in each line.
 
 import org.apache.spark.ml.feature.HashingTF
 val tf = new HashingTF().setNumFeatures(4096)
@@ -305,7 +283,7 @@ val formula = new RFormula().setFormula("arrival ~ . + hour:temperature")
               .setFeaturesCol("features").setLabelCol("label")
 val output = formula.fit(arrival_data).transform(arrival_data)
 
-- IDF() - acronym for inverse document frequency, computes the importance or weight of each word by counting the number of documents it appears in.
+- IDF() - computes the importance or weight of each word by counting the number of documents it appears in.
 
 import org.apache.spark.ml.feature.IDF
 val idf = new IDF().setInputCol("wordFreqVect")
@@ -313,7 +291,7 @@ val idf = new IDF().setInputCol("wordFreqVect")
 val idfModel = idf.fit(tfResult)
 val weightedWords = idfModel.transform(tfResult)
 
-- MinMaxScaler() - linearly rescales each feature (column) individually to a common range of values of min and max using the column summary statistics.
+- MinMaxScaler() - rescales each column individually to a common range of values of min and max using the column summary statistics.
 
 import org.apache.spark.ml.feature.MinMaxScaler
 val minMaxScaler = new MinMaxScaler().setMin(0.0).setMax(5.0)
