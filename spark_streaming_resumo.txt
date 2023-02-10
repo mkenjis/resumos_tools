@@ -161,11 +161,10 @@ finalStream.foreachRDD((rdd) => {
 }
 
 
-Manipulating Structured Streaming
-=================================
+Structured Streaming
+====================
 
-Structured Streaming use Dataframe/Dataset API and Spark SQL to support an incremental processing of data stream.
-
+Structured Streaming uses same Dataframe/Dataset API and Spark SQL to support incremental processing of data stream.
 
 declare a schema to read
 --------------------------
@@ -204,23 +203,26 @@ df.writeStream.format("<type>").
 			   option("checkpointLocation", checkpointDir).
 			   start()
 
-format : kafka - inform following options:
-                .option("kafka.bootstrap.servers", "host1:port1,host2:port2")
-                .option("subscribe", "events")
-	     file (json,csv,parquet,orc) - common destinations local FS, HDFS, or S3
-	     console - print output on console
-	     memory - use driver's memory to store the output
+format() :
+kafka - inform following options:
+        .option("kafka.bootstrap.servers", "host1:port1,host2:port2")
+        .option("subscribe", "events")
+file (json,csv,parquet,orc) - common destinations local FS, HDFS, or S3
+console - print output on console
+memory - use driver's memory to store the output
 
-outputMode : append - only new rows in result table is written (stateless queries)
-	         complete - entire result table is written (stateful queries)
-	         update - only new/updated rows in result table is written (stateful queries)
+outputMode() :
+append - only new rows in result table is written (stateless queries)
+complete - entire result table is written (stateful queries)
+update - only new/updated rows in result table is written (stateful queries)
 			 
-* stateful - queries with groupBy, joins and aggregations
-  stateless - queries that only cleans, transforms or restructures data 
+		* stateful - queries with groupBy, joins and aggregations
+		  stateless - queries that only cleans, transforms or restructures data 
 
-trigger : default - process as soon as previous micro-batched is processed
-          ProcessingTime - process at fixed user-provided interval
-		  once - process whole batch data once
+trigger() :
+default - process as soon as previous micro-batched is processed
+ProcessingTime - process at fixed user-provided interval
+once - process whole batch data once
 
 foreachBatch():
 ==============
@@ -233,8 +235,7 @@ def writeCountsToCassandra(updatedCountsDF: DataFrame, batchId: Long) {
  .mode("append")
  .save()
 
-df
- .writeStream
+df.writeStream
  .foreachBatch(writeCountsToCassandra _)
  .outputMode("update")
  .option("checkpointLocation", checkpointDir)
@@ -255,6 +256,7 @@ val foreachWriter = new ForeachWriter[String] { // typed with Strings
   // Close the connection
   }
 }
+
 resultDSofStrings.writeStream.foreach(foreachWriter).start()
 
 

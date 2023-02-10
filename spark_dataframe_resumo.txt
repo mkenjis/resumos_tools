@@ -62,9 +62,11 @@ val itPosts = spark.createDataFrame(rowRDD, schema)
 
 --------------------
 
-* df.printSchema - prints schema information
-* df.columns - returns a list of column names as Array[String]
-* df.dtypes - returns a list of tuples, each containing the column name and the name of its type as Array[(String, String)]
+Getting schema info from Dataframe
+
+* df.printSchema()
+* df.columns - list of column names as Array[String]
+* df.dtypes - list of tuples for each column as Array[(String, String)]
 
 --------------------
 
@@ -90,8 +92,7 @@ Referecing columns in Dataframes
 
 import org.apache.spark.sql.functions._
 
-* Date time - unix_timestamp, from_unixtime, to_date, current_date, current_timesatmp, date_add, date_sub, add_months, datediff, months_
-between, dayofmonth, dayofyear, weekofyear, second, minute, hour, month
+* Date time - unix_timestamp, from_unixtime, to_date, current_date, current_timesatmp, date_add, date_sub, add_months, datediff, months_between, dayofmonth, dayofyear, weekofyear, second, minute, hour, month
 * String - concat, length, levenshtein, locate, lower, upper, ltrim, rtrim, trim, lpad, rpad, repeat, reverse, split, substring, base64
 * Math - cos, acos, sin, asin, tan, atan, ceil, floor, exp, factorial, log, pow, radian, degree, sqrt, hex, unhex
 Cryptography - cr32, hash, md5, sha1, sha2
@@ -106,7 +107,8 @@ import org.apache.spark.sql.expressions.Window
 
 Window specification - Window.partitionBy().orderBy().[ rowsBetween(), rangeBetween() ]
 
-- rowsBetween() - restricts rows by their row index, where index 0 is the row being processed, -1 is the previous row, and so on. 
+- rowsBetween() - restricts rows by their row index, where index 0 = current row , -1 = previous row, and so on.
+
 - rangeBetween() - restricts rows by their values and includes only those rows whose values (in the defined column to which the window specification applies) fall in the defined range.
 
 postsDf.filter('postTypeId === 1).
@@ -136,18 +138,18 @@ Available at df.na field, returning DataFrameNaFunctions class
 
 df.rdd - returns a RDD[org.apache.spark.sql.Row]
 
-Row object has various get* functions for accessing column values by column indexes (getString(index), getInt(index), getMap(index), ...)
+Row has get* functions for accessing column values by column indexes (getString(index), getInt(index), getMap(index), ...)
 
 --------------------
 
 df.groupBy() - returns RelationGroupedDataset grouping rows that have same values in the grouped columns
-             - aggregation functions available are avg(), count(), min(), max(), sum() and agg()
+             - aggregation functions available : avg(), count(), min(), max(), sum() and agg()
 
 * df.groupBy(col1,col2,...,colN) - creates groups based on values of input columns only
 * df.rollup(col1,col2,...,colN) - respects the hierarchy of input columns
 * df.cube(col1,col2,...,colN) - returns all combinations of input columns
 
-scala> smplDf.groupBy('ownerUserId, 'tags, 'postTypeId).count.show()
+scala> df.groupBy('ownerUserId, 'tags, 'postTypeId).count.show()
 
 --------------------
 
@@ -162,27 +164,38 @@ SparkSQL
 
 SparkSQL supports standard ANSI SQL 2003 and HiveQL.
 
-- Enable Hive support in Spark (for HiveQL and Hive metastore and tables)
+- enable Hive support in Spark (for HiveQL and Hive metastore and tables)
 
 val spark = SparkSession.builder().
  enableHiveSupport().
  getOrCreate()
 
-- Spark Catalog
+- Spark catalog
 
 Dataframes can be registered as tables in Catalog. 
 Catalog stores the table definition (where and how Dataframe´s data is stored).
 HiveContext creates a Derby database under metastore_db. To change the directory is located, set the hive.metastore.warehouse.dir property in your hive-site.xml file.
 
+- remote Hive metastore
+
+to configure Spark to use a remote Hive metastore, set conf/hive-site.xml file with :
+* javax.jdo.option.ConnectionURL — JDBC connection URL
+* javax.jdo.option.ConnectionDriverName — Class name of the JDBC driver
+* javax.jdo.option.ConnectionUserName — Database username
+* javax.jdo.option.ConnectionPassword — Database user password
+
 -------------
 
-- Loading Dataframe
+- loading Dataframe
 
-Built-in data sources: CSV, JSON, Parquet, JDBC, ORC
+Built-in data sources: CSV, JSON, Parquet, ORC, JDBC
 
 format: DataFrameReader.format().option().schema().load()
+------
+val postsDf = spark.read.format("json").load("data/postsjson")
 
-val postsDf = spark.read.format("json").load("postsjson")
+format: DataFrameReader.option().schema().[csv/json/parquet/orc/jdbc/table]()
+------
 val postsDf = spark.read.json("postsjson")
 
 val postsDf = spark.read.table("posts")
@@ -194,9 +207,10 @@ val result = spark.read.jdbc("jdbc:postgresql://postgresrv/mydb", "posts", Array
 
 --------------
 
-- Manipulate Tables
+- create/manipulate/save Tables
 
 postsDf.createOrReplaceTempView("posts_temp")  // creates a temp table in Spark driver
+
 postsDf.write.saveAsTable("posts")  // creates a permanent table. 
                                     // stored in spark_warehouse ( master = local[*] ). can be changed setting the spark.sql.warehouse.dir
 
@@ -204,9 +218,9 @@ val resultDf = spark.sql("select * from posts")  // execute SQL on registered ta
 
 --------------
 
-- Saving Dataframes
+- saving Dataframes
 
-Built-in data sources: CSV, JSON, Parquet, JDBC, ORC
+Built-in data sources: CSV, JSON, Parquet, ORC, JDBC
 
 format: DataFrameWriter.format().mode().option().partitionBy()
 
@@ -216,7 +230,11 @@ postsDf.write.saveAsTable("posts")
 postsDf.write.format("json").saveAsTable("postsjson")
 
 * insertInto("table")
+
 * save("path")
+
+postsDf.write.format("json").save("data/postsjson")
+
 * jdbc("URL", "table", java.util.Properties)
 
 val props = new java.util.Properties()

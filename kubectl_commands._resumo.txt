@@ -9,7 +9,10 @@ kubectl describe pod <pod>
 kubectl edit pod <pod>
 
 -------------------
-Pods
+Pods - encapsulate a container (or replicas) or different containers in cluster
+       keeps alive while at least one container is still alive.
+	   pods die if all containers die. 
+	   IP is not fixed for a pod and new IP is assigned for a reborn pod.
 
 ex: primeiro-pod.yml
 
@@ -32,7 +35,8 @@ kubectl delete -f primeiro-pod.yml  ( declarativo )
 kubectl exec -it <pod> -- bash
 
 -------------------
-ClusterIP
+ClusterIP - provides a fixed IP to access a pod even being reborn inside the cluster
+          - acessible only inside the cluster
 
 ex: pod2.yml
 
@@ -66,6 +70,10 @@ spec:
 kubectl apply -f pod2.yml  ( cria/atualiza pod )
 kubectl apply -f svc-pod2.yml  ( cria/atualiza service )
 
+Test:
+kubectl exec -it pod3 -- bash
+$ curl <IP svc-pod2>:9000 
+
 -------------------
 kubectl get svc -o wide
 kubectl describe svc <service>
@@ -73,7 +81,8 @@ kubectl describe svc <service>
 kubectl delete -f svc-pod2.yml  ( declarativo )
 
 -------------------
-NodePort
+NodePort - provides a fixed IP to access a pod even being reborn inside the cluster
+         - acessible outside the cluster
 
 ex: pod1.yml
 
@@ -107,6 +116,19 @@ spec:
 
 kubectl apply -f pod1.yml  ( cria/atualiza pod )
 kubectl apply -f svc-pod1.yml  ( cria/atualiza service )
+
+Test:
+kubectl exec -it pod3 -- bash
+$ curl <IP svc-pod1>:80
+$ curl svc-pod1:80
+
+For Linux:
+kubectl get nodes -o wide   ( get internal IP )
+https://<IP cluster>:30000
+
+For Windows:
+https://locahost:30000
+
 
 -------------------
 
@@ -171,12 +193,12 @@ spec:
 -------------------
 ReplicaSets - automatically manages # pods up in case of failures, starting new pods
 
-Ex : pod1-replicatset.yml
+Ex : pod1-rs.yml
 
 apiVersion: apps/v1
 kind: ReplicaSet
 metadata:
-  name: pod1-replicaset
+  name: pod1-rs
 spec:
   replicas: 3
   template:
@@ -195,10 +217,10 @@ spec:
 	  app: pod1
 
 
-kubectl apply -f pod1-replicatset.yml
+kubectl apply -f pod1-rs.yml
 kubectl get replicasets / rs ( --watch )
 
-kubectl delete -f pod1-replicatset.yml
+kubectl delete -f pod1-rs.yml
 
 -------------------
 Deployment - controls and register revisions between deployments.
@@ -226,7 +248,7 @@ spec:
 	metadata:                   --+
 	  name: nginx-pod             |
 	  labels:                     |
-		app: nginx-po             |
+		app: nginx-pod             |
 	spec:                          >  pod & container definition
 	  containers:                 |
 		- name: nginx-container   |
@@ -270,13 +292,13 @@ spec:
 	  image: nginx:latest
 	  volumeMounts:
 	    - mountPath : /volume1
-		- name : primeiro-volume
+		  name : primeiro-volume
 
     - name: jenkins-container
 	  image: jenkins:alpine
 	  volumeMounts:
 	    - mountPath : /volume1
-		- name : primeiro-volume
+		  name : primeiro-volume
 
   volumes:
     - name: primeiro-volume
