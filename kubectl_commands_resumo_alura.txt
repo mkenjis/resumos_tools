@@ -1,5 +1,7 @@
 kubectl version
 kubectl get all 
+kubectl get namespaces
+kubectl get all --all-namespaces
 
 -------------------
 

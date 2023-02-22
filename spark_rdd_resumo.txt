@@ -14,10 +14,8 @@ There are two types of RDD operations:
 * Actions - trigger a computation to return the result to the calling program or to perform some actions on an RDD’s elements.
 
 
-Manipulating Spark RDDs
-=======================
-
-1) Creating SparkContext instance
+SparkContext
+============
 
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
@@ -26,168 +24,148 @@ val conf = new SparkConf().setAppName("Counting Lines").setMaster("spark://maste
 val sc = new SparkContext(conf)
  
 
-2) Creating RDDs
-
-val licLines = sc.textFile("numbers.txt")
-val numberRDD = sc.parallelize(List(1,2,3,4,5,6,7,8,9,10), 2)
-
-
-3) rdd.map(func: (T) => U): RDD[U]
-
-Returns a RDD with each element transformed by func.
-
-val numbersSquared = numberRDD.map(num => num * num)
+Create RDDs
+===========
+val numberRDD = sc.parallelize(List(1,2,3,4,5,6,7,8,9,10), 2)  // from local collection
+val licLines = sc.textFile("numbers.txt")                      // reading from a file
 
 
-4) rdd.flatMap(func: (T) => Iterable[U]): RDD[U]
+Manipulate RDDs
+===============
 
-Returns a RDD with elements of Iterable flatten out.
+1) map(func: (T) => U): RDD[U] - returns a RDD with elements transformed by func 
 
-scala> val ids = licLines.flatMap(_.split(","))
-scala> ids.collect
+numberRDD.map(num => num * num)
+
+
+2) flatMap(func: (T) => Iterable[U]): RDD[U] - func must return a Iterable
+                                             - returns a RDD with elements flatten out
+val idsStr = licLines.flatMap(_.split(","))
+idsStr.collect()
 res11: Array[String] = Array(15, 16, 20, 20, 77, 80, 94, 94, 98, 16, 31, 31, 15, 20)
 
 
-5) rdd.filter(func: (T)): RDD[T]
+3) filter(func: (T)): RDD[T] - returns a RDD with elements that satisfy func
 
-Returns a RDD with elements that satisfy func condition.
-
-scala> val bsdLines = licLines.filter(line => line.contains("BSD"))
+licLines.filter(line => line.contains("BSD"))
 
 
-6) rdd.reduce(func: (V, V) => V): V
-
-Reduces the RDD elements using the specified commutative and associative binary operator.
-
-scala> val numberRDD = sc.parallelize(List(1,2,3,4,5,6,7,8,9,10), 2)
-scala> numberRDD.reduce( (x, y) => x + y )
+4) reduce(func: (V, V) => V): V - returns a single value
+                                - func must be commutative and associative binary operator.
+numberRDD.reduce( (x, y) => x + y )   // returns 55
 
 
-7) rdd.distinct(): RDD[T]
+5) distinct(): RDD[T] - returns a RDD with unique elements
 
-Returns a RDD with unique elements
-
-scala> val intIds = ids.map(_.toInt)
-scala> val uniqueIds = intIds.distinct
-scala> uniqueIds.collect
+val intIds = idsStr.map(_.toInt)
+intIds.distinct.collect()
 res15: Array[Int] = Array(16, 80, 98, 20, 94, 15, 77, 31
 
 
-8) rdd.take(N), rdd.takeOrdered(N, [order]), rdd.top(N, [order])
-
-Returns N records from RDD to driver program.
-
-
-9) rdd.collect(), rdd.first(), rdd.last(), rdd.count()
+6) take(N), 
+   top(N, [order]),
+   takeOrdered(N, [order]) - returns N values from RDD to driver program
 
 
-
-Manipulating Pair RDDs
-======================
-
-1) Creating Pair RDDs
-
-RDDs created as two-element tuples (or pair RDDs) get implicitly converted to an instance of class PairRDDFunctions.
-Pair RDD functions automatically become available through the implicit conversion.
-
-scala> val pairdd = rdd.map( x => (K, V) )
-scala> val pairdd = rdd.keyBy(f(x))
-
-scala> val tranFile = sc.textFile("first-edition/ch04/ch04_data_transactions.txt") 
-scala> val tranData = tranFile.map(_.split("#")) 
-scala> var transByCust = tranData.map(tran => (tran(2).toInt, tran))
+7) collect(), 
+   first(), 
+   last(), 
+   count() - returns values to driver program
 
 
-2) Getting Keys And Values
 
-pairdd.keys - returns scala.collection.Array[K]
-pairdd.values - returns scala.collection.Array[V]
+Create Pair RDDs
+================
 
-scala> transByCust.keys.distinct().count()
+Pair RDD is created as RDD 2-element tuple, ie, RDD[(K,V)]
+RDD 2-element tuple get implicitly converted to an instance of class PairRDDFunctions
+
+val pairdd = rdd.map( x => (K, V) )
+val pairdd = rdd.keyBy(f(x))
+
+val tranFile = sc.textFile("first-edition/ch04/ch04_data_transactions.txt") 
+val tranData = tranFile.map(_.split("#")) 
+var transByCust = tranData.map(tran => (tran(2).toInt, tran))
+
+transByCust.collect().foreach(tran => println(tran.mkString(", ")))
+2015-03-30, 6:18 AM, 53, 42, 5, 2197.85
+2015-03-30, 4:42 AM, 53, 3, 6, 9182.08
+
+Manipulate Pair RDDs
+====================
+
+1) keys   - returns scala.collection.Array[K]
+   values - returns scala.collection.Array[V]
+
+transByCust.keys.distinct().count()
 res0: Long = 100
 
 
-3) pairrdd.countByKey(): Dict[K, int]
+2) countByKey(): Dict[K, int] - returns scala.collection.Map[Int,Long]
 
-Returns scala.collection.Map[Int,Long]
-
-scala> transByCust.countByKey()
+transByCust.countByKey()
 res1: scala.collection.Map[Int,Long] = Map(69 -> 7, 88 -> 5, 5 -> 11, 
 10 -> 7, 56 -> 17, 42 -> 7, 24 -> 9, 37 -> 7, 25 -> 12, 52 -> 9, 14 -> 8, 
 20 -> 8, 46 -> 9, 93 -> 12, 57 -> 8, 78 -> 11, 29 -> 9, 84 -> 9, 61 -> 8, 
 89 -> 9, 1 -> 9, 74 -> 11, 6 -> 7, 60 -> 4,...
 
 
-4) pairrdd.lookup(K): RDD[(K, U)]
+3) lookup(K): RDD[(K, U)] - returns all elements with key = <key>
 
-Returns all elements with key = <key>
-
-scala> transByCust.lookup(53)
+transByCust.lookup(53)
 res1: Seq[Array[String]] = WrappedArray(Array(2015-03-30, 6:18 AM, 53, 42, 5, 2197.85), Array(2015-03-30, 4:42 AM, 53, 3, 6, 9182.08), ...
 
 
-5) pairrdd.mapValues(func: (V) => U): RDD[(K, U)]
+4) mapValues(func: (V) => U): RDD[(K, U)] - changes only value part in a pair RDD and keeping associated keys untouched
 
-Changes the values contained in a pair RDD without changing the associated keys
-
-scala> transByCust = transByCust.mapValues(tran => {
-		 if(tran(3).toInt == 25 && tran(4).toDouble > 1) 
-			tran(5) = (tran(5).toDouble * 0.95).toString
-		 tran 
-		 }
+transByCust = transByCust.mapValues(tran => {
+	 if(tran(3).toInt == 25 && tran(4).toDouble > 1) 
+		tran(5) = (tran(5).toDouble * 0.95).toString
+	 tran 
+	 }
 
 
-6) pairrdd.flatMapValues(func: (V) => Iterable[U]): RDD[(K, U)]
+5) flatMapValues(func: (V) => Iterable[U]): RDD[(K, U)] - changes number of elements for a key by mapping each key to 0+ values.
 
-Enables to change the number of elements corresponding to a key by mapping each key to 0+ values.
+transByCust = transByCust.flatMapValues(tran => { 
+	 if(tran(3).toInt == 81 && tran(4).toDouble >= 5) { 
+		val cloned = tran.clone()
+		cloned(5) = "0.00"; cloned(3) = "70"; cloned(4) = "1"; 
+		List(tran, cloned)
+	 } 
+	 else 
+		List(tran)
+	 }
 
-scala> transByCust = transByCust.flatMapValues(tran => { 
-		 if(tran(3).toInt == 81 && tran(4).toDouble >= 5) { 
-			val cloned = tran.clone()
-			cloned(5) = "0.00"; cloned(3) = "70"; cloned(4) = "1"; 
-			List(tran, cloned)
-		 } 
-		 else 
-			List(tran)
-		 }
-
-7) pairrdd.reduceByKey(func: (V, V) => V): RDD[(K, V)]
-
-Merges all the values of a key into a single value of the same type.
+6) reduceByKey(func: (V, V) => V): RDD[(K, V)] - merges all values for a key into a single value
 
 
-8) pairrdd.foldByKey(zeroValue: V)(func: (V, V) => V): RDD[(K, V)]
+7) foldByKey(zeroValue: V)(func: (V, V) => V): RDD[(K, V)] - same as reduceByKey, but it requires an additional parameter, zeroValue, in the parameter list 
 
-Same as reduceByKey, except that it requires an additional parameter, zeroValue, that comes before the reduce function. 
-
-scala> val amounts = transByCust.mapValues(t => t(5).toDouble)
-scala> val totals = amounts.foldByKey(0)((p1, p2) => p1 + p2).collect()
+val amounts = transByCust.mapValues(t => t(5).toDouble)
+val totals = amounts.foldByKey(0)((p1, p2) => p1 + p2).collect()
 res0: Array[(String, Double)] = Array((84,53020.619999999995), (96,36928.57), (66,52130.01), (54,36307.04), ...
 
 
-9) pairrdd.aggregateByKey(zeroValue: V)(seqFunc: (U, V) => U, mergeFunc: (U, U) => U): RDD[(K, U)]
+8) aggregateByKey(zeroValue: V)(seqFunc: (U, V) => U, mergeFunc: (U, U) => U): RDD[(K, U)] - similar to foldByKey and reduceByKey.
 
-Similar to foldByKey and reduceByKey.
+- merges values and transforms values to another type. 
 
-Merges values and takes zeroValue argument, but it also transforms values to another type. 
+- takes zeroValue argument and two functions as arguments: a transform function transforms values from type V to type U (with the signature (U, V) => U) and a merge function merging the transformed values (with the signature (U, U) => U).
 
-Also it takes two functions as arguments: a transform function for transforming values from type V to type U (with the signature (U, V) => U) and a merge function for merging the transformed values (with the signature (U, U) => U).
-
-scala> val prods = transByCust.aggregateByKey(List[String]())( 
-			 (prods, tran) => prods ::: List(tran(3)),
-			 (prods1, prods2) => prods1 ::: prods2) 
-scala> prods.collect()
+val prods = transByCust.aggregateByKey(List[String]())( 
+		 (prods, tran) => prods ::: List(tran(3)),
+		 (prods1, prods2) => prods1 ::: prods2) 
+prods.collect()
 res0: Array[(String, List[String])] = Array((88,List(47.149.147.123, 74.211.5.196,...), (82,List(8.140.151.84, 23.130.185.187,...), ...)
 
 
-Spark’s data partitioners
-=========================
-Partitioner objects available that assign a partition index to each RDD element :
+RDD Partitioners  - partitions RDDs by assigning a partition index to each RDD element 
+================  - spark.default.parallelism is used if number of partitions not specified
 
 * HashPartitioner ( partitionIndex = hashCode % numberOfPartitions )
 * RangePartitioner ( partitions data of sorted RDDs into roughly equal ranges )
-* Pair RDDs also accept custom partitioners
-* spark.default.parallelism used if number of partitions not specified
+* Custom partitioners only on Pair RDDs
 
 pairrdd.foldByKey(afunction, 100)
 pairrdd.foldByKey(afunction, new HashPartitioner(100))
@@ -198,42 +176,41 @@ pairrdd.aggregateByKey(zeroValue, new CustomPartitioner())(seqFunc, comboFunc).c
 
 Repartitioning RDDs
 ===================
-* partitionBy (Partitioner: partitioner ) - available only on pair RDDs
+* partitionBy (Partitioner: partitioner) - available only on pair RDDs
 * coalesce (numPartitions: Int, shuffle: Boolean = false)
 * repartition (numPartitions: Int)
-* repartitionAndSortWithinPartition
+* repartitionAndSortWithinPartition()
 
 
-Mapping data in partitions
-==========================
-* mapPartitions (f(Iterator[T]) => Iterator[U]): RDD[(U)] - apply a function to each of its partitions separately.
-* mapPartitionsWithIndex (f(Int, Iterator[T])) => Iterator[U]): RDD[(U)]
+Mapping RDD Partitions
+======================
+* mapPartitions ( f(Iterator[T]) => Iterator[U]): RDD[(U)] - function applies transformation on elements of Iterator[T} of each RDD partitions
+* mapPartitionsWithIndex ( f(Int, Iterator[T])) => Iterator[U]): RDD[(U)]
 * glom(): RDD[ (List[T]) ] - gathers elements of each partition into an array and returns a new RDD with those arrays as elements.
 
-scala> val list = List.fill(500)(scala.util.Random.nextInt(100))
+val list = List.fill(500)(scala.util.Random.nextInt(100))
 list: List[Int] = List(88, 59, 78, 94, 34, 47, 49, 31, 84, 47, ...)
-scala> val rdd = sc.parallelize(list, 30).glom()
+val rdd = sc.parallelize(list, 30).glom()
 rdd: org.apache.spark.rdd.RDD[Array[Int]] = MapPartitionsRDD[0]
-scala> rdd.collect()
+rdd.collect()
 res0: Array[Array[Int]] = Array(Array(88, 59, 78, 94,...), ...)
 
 
-Joining RDD data
-================
+Joining RDDs
+============
 
-1) Consider RDD (K, V) elements, and passing in an RDD (K, W) elements for a join :
+1) Consider RDD(K, V) joined with a RDD(K, W) :
 
-* join — this returns a new pair RDD with the elements (K, (V, W)) containing all possible pairs of values from the first
-and second RDDs that have the same keys. For the keys that exist in only one of the two RDDs, the resulting RDD will have no elements.
+* join — returns elements of type (K, (V, W)) matching the keys in the first and second RDDs. For non-matching keys, no elements will be returned.
 
-* leftOuterJoin — this returns elements of type (K, (V,Option(W))); The resulting RDD will also contain the elements (key, (v, None)) for those keys that don’t exist in the second RDD.
+* leftOuterJoin — returns elements of type (K, (V,Option(W))). For non-matching keys in the second RDD, it returns elements  (key, (v, None)).
 
-* rightOuterJoin — this returns elements of type (K, (Option(V), W)); the resulting RDD will also contain the elements (key, (None, w)) for those keys that don’t exist in the first RDD.
+* rightOuterJoin — returns elements of type (K, (Option(V), W)). For non-matching keys in the first RDD, it returns elements (key, (None, w)).
 
-* fullOuterJoin — this returns elements of type (K, (Option(V), Option(W)); the resulting RDD will contain both (key, (v, None)) and (key, (None, w)) elements for those keys that exist in only one of the two RDDs.
+* fullOuterJoin — returns elements of type (K, (Option(V), Option(W)). For non-matching keys in the first or second RDD, it returns both elements (key, (v, None)) and (key, (None, w)).
 
-scala> val totalsAndProds = totalsByProd.join(products)
-scala> totalsAndProds.first()
+val totalsAndProds = totalsByProd.join(products)
+totalsAndProds.first()
 res0: (Int, (Double, Array[String])) = (84,(75192.53,Array(84, Cyanocobalamin, 2044.61, 8)))
 
 val totalsWithMissingProds = products.leftOuterJoin(totalsByProd)
@@ -242,45 +219,45 @@ val totalsWithMissingProds = totalsByProd.rightOuterJoin(products)
 
 2) subtract And subtractByKey
 
-* subtract - returns elements from the first RDD that aren’t present in the second one. It works on ordinary RDDs and compares complete elements (not just their keys or values)
+* subtract - returns elements from the first RDD that aren’t present in the second one. It compares complete elements (not just their keys or values)
 
-* subtractByKey - works on pair RDDs and returns an RDD with pairs from the first RDD whose keys aren’t in the second RDD. The second RDD doesn’t need to have values of the same type as the first one.
+* subtractByKey - works on pair RDDs and returns elements from the first RDD whose keys aren’t in the second RDD. The second RDD doesn’t need to have values of the same type as the first one.
 
-scala> val missingProds = products.subtractByKey(totalsByProd).values
+val missingProds = products.subtractByKey(totalsByProd).values
 
 
 3) cogroup Transformation
 
-Performs a grouping of values from each RDDs by key. Returns an RDD whose values are arrays of Iterable objects containing values from each RDD. So, cogroup groups values of several RDDs by key and then joins these grouped RDDs.
+Performs a grouping of values by key from each RDDs. 
+Returns an pair RDD whose values are arrays of Iterable objects containing values from each RDD by key.
 
-For example, the signature of the cogroup function for cogrouping three RDDs (including the enclosing one) is as follows:
+cogroup[W1, W2](other1: RDD[(K, W1)], other2: RDD[(K, W2)]): RDD[(K, (Iterable[V], Iterable[W1], Iterable[W2]))]
 
-cogroup[W1, W2](other1: RDD[(K, W1)], other2: RDD[(K, W2)]):
- RDD[(K, (Iterable[V], Iterable[W1], Iterable[W2]))]
-
-scala> val prodTotCogroup = totalsByProd.cogroup(products)
+val prodTotCogroup = totalsByProd.cogroup(products)
 prodTotCogroup: org.apache.spark.rdd.RDD[(Int, (Iterable[Double], Iterable[Array[String]]))]...
 
 
 4) zip Transformation
 
-zip functions just like the zip function in Scala: if you call rdd1[T].zip(rdd2[U]), it will create an RDD of pairs (T, U) with the first pair having the first elements from each RDD, the second pair having the second elements, and soon.
+- zip creates an RDD of pairs (T, U) with the first pair having the first elements from each RDD, the second pair having the second elements, and soon.
+- zip requires RDDs have same number of partitions and same number of elements in them.
 
-scala> val rdd1 = sc.parallelize(List(1,2,3))
-scala> val rdd2 = sc.parallelize(List("n4","n5","n6"))
-scala> rdd1.zip(rdd2).collect()
+val rdd1 = sc.parallelize(List(1,2,3))
+val rdd2 = sc.parallelize(List("n4","n5","n6"))
+rdd1.zip(rdd2).collect()
 res1: Array[(Int, Int)] = Array((1,"n4"), (2,"n5"), (3,"n6")
 
 
 5) zipPartition Transformation
 
-zipPartitions enables you to iterate over elements inside partitions, but you use it to combine several RDDs’ partitions. All RDDs need to have the same number of partitions (but not the same number of elements in them).
+- zipPartitions enables you to zip over elements inside partitions
+- all RDDs need to have the same number of partitions (but not the same number of elements in them).
+- zipPartitions accepts two sets of arguments. In the first, you give it RDDs; and in the second, a function that takes a matching number of Iterator objects used for accessing elements in each partition. 
+- function must return a new Iterator, which can be a different type (matching the resulting RDD).
 
-zipPartitions accepts two sets of arguments. In the first set, you give it RDDs; and in the second, a function that takes a matching number of Iterator objects used for accessing elements in each partition. The function must return a new Iterator, which can be a different type (matching the resulting RDD).
-
-scala> val rdd1 = sc.parallelize(1 to 10, 10)
-scala> val rdd2 = sc.parallelize((1 to 8).map(x=>"n"+x), 10)
-scala> rdd1.zipPartitions(rdd2, true)((iter1, iter2) => {
+val rdd1 = sc.parallelize(1 to 10, 10)
+val rdd2 = sc.parallelize((1 to 8).map(x=>"n"+x), 10)
+rdd1.zipPartitions(rdd2, true)((iter1, iter2) => {
 		 iter1.zipAll(iter2, -1, "empty").map({case(x1, x2)=>x1+"-"+x2}) 
 		 }).collect()
 res1: Array[String] = Array(1-empty, 2-n1, 3-n2, 4-n3, 5-n4, 6-empty, 7-n5, 8-n6, 9-n7, 10-n8
@@ -293,12 +270,9 @@ Sorting data
 * sortBy
 * repartitionAndSortWithinPartition
 
-scala> val sortedProds = totalsAndProds.sortBy(_._2._2(1))
-scala> sortedProds.collect()
-res0: Array[(Double, Array[String])] = Array((90,(48601.89,Array(90, 
-AMBROSIA TRIFIDA POLLEN, 5887.49, 1))), (94,(31049.07,Array(94, ATOPALM 
-MUSCLE AND JOINT, 1544.25, 7))), (87,(26047.72,Array(87, Acyclovir, 
-6252.58, 4))), ..
+val sortedProds = totalsAndProds.sortBy(_._2._2(1)).collect()
+res0: Array[(Double, Array[String])] = Array((90,(48601.89,Array(90, AMBROSIA TRIFIDA POLLEN, 5887.49, 1))), 
+(94,(31049.07,Array(94, ATOPALM MUSCLE AND JOINT, 1544.25, 7))), (87,(26047.72,Array(87, Acyclovir, 6252.58, 4))), ..
 
 
 1) Making A Class Orderable Using The Ordered Trait

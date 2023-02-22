@@ -1,0 +1,87 @@
+
+kubectl version ( --short)
+kubectl run my-nginx --image nginx  ( = docker run )
+kubectl get pods/all
+
+--------
+
+kubectl create deployment my-nginx --image nginx  ( = docker service create )
+kubectl delete deployment my-nginx
+
+              +---------------+
+              |  deployment   |
+              +---------------+
+             /                 \
+            /                   \
++----------------+         +----------------+
+| old replicaset | ------> | new replicaset |
++----------------+         +----------------+
+        |                          |
+        V                          V
++----------------+         +----------------+
+| old replicaset | ------> | new replicaset |
++----------------+         +----------------+
+
+Rolling updates when:
+- change image
+- change tag
+- change pods spec
+
+kubectl deploy:
+   /---\         /----\
+  | api | ----> | etcd |
+   \---/         \----/
+                    |
+					V
+                  /---\         /----\
+                 | c-m | ----> | schd | 
+				  \---/         \----/
+				  
+Scaling Up
+----------
+kubectl scale deploy/my-apache -- replicas 2
+
+Container Logs
+--------------
+kubectl logs deploy/my-apache ( -- follow -- tail 1 )
+
+- logs combined from all containers
+kubectl logs -l run=my-apache
+
+kubectl describe pod/my-apache - <replicaset ID> - <pod ID>
+
+Exposing Pods
+-------------
+kubectl expose deploy/httpenv --port 8888  ( creating ClusterIP )
+
+kubectl expose deploy/httpenv --port 8888 --name httpenv-np --type NodePort
+                                                                   LoadBalancer
+																   
+Templates "generators"
+----------------------
+kubectl create deploy/sample --image nginx
+        --dry-run     // create generator and dont run cmd
+		-o yaml       // generates in yml format
+		
+Ex:
+kubectl create deploy/test --image nginx --dry-run -o yaml
+kubectl create job test --image nginx --dry-run -o yaml
+kubectl expose deploy/test --port 80 --dry-run -o yaml   ( gives error unless run a deploy )
+
+Diff
+----
+kubectl diff -f app.yml (  compares app.yml against what is current in server )
+
+Namespaces
+----------
+kubectl get namespaces
+kubectl get all --all-namespaces
+
+Kubectl Context
+---------------
+see ~/.kube/config
+
+kubectl config get-contexts ( show config file )
+kubectl config set*
+
+         

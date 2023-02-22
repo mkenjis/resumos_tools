@@ -12,7 +12,7 @@ hangs 2 min on restart at network services
    edit interfaces file
    
 auto lo
-iface lo inet lookback
+iface lo inet loopback
 
 auto enp0s3
 iface enp0s3 inet dhcp
@@ -20,3 +20,20 @@ iface enp0s3 inet dhcp
 3) remove cloud-init services
    dpkg-reconfigure cloud-init (uncheck everything except "None")
    reboot
+
+
+ubuntu20:
+
+
+1) cd /etc/netplan
+   edit/create 99_config.yaml
+
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s3:
+      dhcp4: true
+	  
+2) sudo dhclient -r enp0s3
+   sudo dhclient enp0s3

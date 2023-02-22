@@ -1,0 +1,29 @@
+
+docker run hello-world
+docker pull ubuntu - pull only ubuntu image
+docker run ubuntu  - if image not in local repo, pull and run image
+                   - otherwise run image stored in local repo
+
+docker container run ubuntu
+docker ps / docker container ls ( -a )
+
+docker run ubuntu sleep 1d  - keeps image up while slept.
+
++--------+  --------> +--------------+
+|  HOST  |   request  |  DOCKER HUB  |
++--------+ <--------  +--------------+
+           pull image
+			  
+docker stop <contID>
+docker start <contID>
+docker exec -it <contID> bash  - access container running bash shell
+docker pause/unpause <contID>  - freezes/unfreezes container execution
+docker rm <contID>  - removes container and all data
+docker run -it <contID> bash   - creates a ephemeral container to run bash
+
+-----------
+
+docker run -d dockersamples/static-site  - runs detached / background
+docker run -f <contID>  - stops and removes container from local repo
+docker run -p <host>:<cont> <contID>  - map host -> container ports
+docker ports <contID>  - list container x hosts mapping ports

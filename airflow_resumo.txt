@@ -1,0 +1,253 @@
+Airflow components:
+------------------
+* scheduler — Parses DAGs, checks their schedule interval, and starts scheduling the DAGs’ tasks for execution by
+passing them to the Airflow workers.
+* workers — Pick up tasks that are scheduled for execution and execute them.
+* webserver — Visualizes the DAGs parsed by the scheduler and provides the main interface for users to monitor DAG runs and their results
+
+Setups steps:
+------------
+$ pip install apache-airflow
+$ airflow db init
+$ airflow users create --username admin --password admin --firstname Anonymous --lastname Admin --role Admin --email admin@example.org
+$ airflow webserver
+$ airflow scheduler
+
+
+Airflow DAG example :
+-------------------
+import json
+import pathlib
+import airflow
+import requests
+import requests.exceptions as requests_exceptions
+from airflow import DAG
+from airflow.operators.bash import BashOperator
+from airflow.operators.python import PythonOperator
+
+dag = DAG( 
+ dag_id="download_rocket_launches", 
+ start_date=airflow.utils.dates.days_ago(14), 
+ schedule_interval=None, 
+)
+
+download_launches = BashOperator( 
+  task_id="download_launches", 
+  bash_command="curl -o /tmp/launches.json -L 'https://ll.thespacedevs.com/2.0.0/launch/upcoming'",
+  dag=dag,
+)
+
+def _get_pictures(): 
+  # Ensure directory exists
+  pathlib.Path("/tmp/images").mkdir(parents=True, exist_ok=True)
+  # Download all pictures in launches.json
+  with open("/tmp/launches.json") as f:
+    launches = json.load(f)
+    image_urls = [launch["image"] for launch in launches["results"]]
+    for image_url in image_urls:
+      try:
+        response = requests.get(image_url)
+        image_filename = image_url.split("/")[-1]
+        target_file = f"/tmp/images/{image_filename}"
+        with open(target_file, "wb") as f:
+          f.write(response.content)
+        print(f"Downloaded {image_url} to {target_file}")
+      except requests_exceptions.MissingSchema:
+        print(f"{image_url} appears to be an invalid URL.")
+      except requests_exceptions.ConnectionError:
+        print(f"Could not connect to {image_url}.")
+
+get_pictures = PythonOperator( 
+  task_id="get_pictures",
+  python_callable=_get_pictures, 
+  dag=dag,
+)
+
+notify = BashOperator(
+  task_id="notify",
+  bash_command='echo "There are now $(ls /tmp/images/ | wc -l) images."',
+  dag=dag,
+)
+
+download_launches >> get_pictures >> notify
+
+
+Schedule interval
+-----------------
+dag = DAG(
+ dag_id="03_with_end_date",
+ schedule_interval="@daily",
+ start_date=dt.datetime(year=2019, month=1, day=1),
+ end_date=dt.datetime(year=2019, month=1, day=5),
+)
+
+schedule_interval = @daily, @hourly, @weekly, @monthly, @yearly, cron(), 
+frequency_based = dt.timedelta(days=x), dt.timedelta(hours=x), dt.timedelta(minutes=x)
+start_date
+end_date (optional)
+
+
+Incremental DAGs
+----------------
+fetch_events = BashOperator(
+ task_id="fetch_events",
+ bash_command=(
+ "mkdir -p /data && "
+ "curl -o /data/events.json "
+ "http:/ /localhost:5000/events?"
+ "start_date={{execution_date.strftime('%Y-%m-%d')}}" 
+ "&end_date={{next_execution_date.strftime('%Y-%m-%d')}}" 
+ ),
+ dag=dag,
+)
+
+In this example, the syntax {{variable_name}} is an example of using Airflow’s Jinjabased (http://jinja.pocoo.org) templating syntax for referencing one of Airflow’s specific parameters. Here, we use this syntax to reference the execution dates and format
+them to the expected string format using the datetime strftime method (as both execution dates are datetime objects).
+
+fetch_events = BashOperator(
+ task_id="fetch_events",
+ bash_command=(
+ "mkdir -p /data && "
+ "curl -o /data/events.json " 
+ "http:/ /localhost:5000/events?"
+ "start_date={{ds}}&" 
+ "end_date={{next_ds}}" 
+ ),
+ dag=dag,
+)
+
+ Because the execution_date parameters are often used in this fashion to reference dates as formatted strings, Airflow also provides several shorthand parameters
+for common date formats. For example, the ds and ds_nodash parameters are different representations of the execution_date, formatted as YYYY-MM-DD and YYYYMMDD, respectively. Similarly, next_ds, next_ds_nodash, prev_ds, and prev_ds_nodash
+provide shorthand notations for the next and previous execution dates, respectively
+
+
+Airflow’s execution dates
+-------------------------
+Airflow defines the execution date of a DAG as the start of the corresponding interval.
+
+If DAG run is started at 2019-01-04 00:00, however value of the execution_date variable when our tasks are executed will actually see an execution date of 2019-01-03. 
+
+With Airflow execution dates being defined as the start of the corresponding
+schedule intervals, they can be used to derive the start and end of a specific interval
+(figure 3.7). For example, when executing a task, the start and end of the corresponding interval are defined by the execution_date (the start of the interval) and the
+next_execution date (the start of the next interval) parameters. Similarly, the previous schedule interval can be derived using the previous_execution_date and
+execution_date parameters.
+
+
+Operator arguments with Jinja templating
+
+Double curly braces denote a Jinjatemplated string. Jinja is a templating engine, which replaces variables and/or expressions in a templated string at runtime.
+
+import airflow.utils.dates
+from airflow import DAG
+from airflow.operators.bash import BashOperator
+
+dag = DAG(
+ dag_id="chapter4_stocksense_bashoperator",
+ start_date=airflow.utils.dates.days_ago(3),
+ schedule_interval="@hourly",
+)
+
+get_data = BashOperator(
+ task_id="get_data",
+ bash_command=(
+ "curl -o /tmp/wikipageviews.gz "
+ "https://dumps.wikimedia.org/other/pageviews/"
+ "{{ execution_date.year }}/" 
+ "{{ execution_date.year }}-"
+ "{{ '{:02}'.format(execution_date.month) }}/"
+ "pageviews-{{ execution_date.year }}"
+ "{{ '{:02}'.format(execution_date.month) }}"
+ "{{ '{:02}'.format(execution_date.day) }}-"
+ "{{ '{:02}'.format(execution_date.hour) }}0000.gz" 
+ ),
+ dag=dag,
+)
+
+
+Templating the PythonOperator
+
+The PythonOperator is an exception to this standard, because it doesn’t take arguments that can be templated with the runtime context, but instead a python_callable argument in which the runtime context can be applied
+
+
+from urllib import request
+import airflow
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+
+dag = DAG(
+ dag_id="stocksense",
+ start_date=airflow.utils.dates.days_ago(1),
+ schedule_interval="@hourly",
+)
+
+def _print_context(**kwargs): 
+ print(kwargs)
+ year, month, day, hour, *_ = kwargs["execution_date"].timetuple()
+ 
+print_context = PythonOperator(
+ task_id="print_context",
+ python_callable=_print_context,
+ dag=dag,
+)
+
+Linear dependencies
+-------------------
+download_launches = BashOperator(...)
+get_pictures = PythonOperator(...)
+notify = BashOperator(...)
+
+download_launches >> get_pictures 
+get_pictures >> notify
+
+download_launches >> get_pictures >> notify 
+
+
+Fan-in/-out dependencies
+------------------------
+
+fetch_weather >> clean_weather
+fetch_sales >> clean_sales
+
+from airflow.operators.dummy import DummyOperator
+start = DummyOperator(task_id="start") 
+start >> [fetch_weather, fetch_sales]
+
+[clean_weather, clean_sales] >> join_datasets
+
+join_datasets >> train_model >> deploy_model
+
+
+Branching within the DAG
+----------------------
+
+Use BranchPythonOperator to return the ID of a downstream task as a result of their computation. The returned ID determines which of the downstream tasks will be executed after completion of the branch task. 
+
+fetch_sales_old = PythonOperator(...)
+clean_sales_old = PythonOperator(...)
+fetch_sales_new = PythonOperator(...)
+clean_sales_new = PythonOperator(...)
+
+fetch_sales_old >> clean_sales_old
+fetch_sales_new >> clean_sales_new
+
+def _pick_erp_system(**context):
+ if context["execution_date"] < ERP_SWITCH_DATE:
+ return "fetch_sales_old"
+ else:
+ return "fetch_sales_new"
+ 
+pick_erp_system = BranchPythonOperator(
+ task_id="pick_erp_system",
+ python_callable=_pick_erp_system,
+)
+
+pick_erp_system >> [fetch_sales_old, fetch_sales_new]
+start_task >> pick_erp_system
+
+join_datasets = PythonOperator(
+ ...,
+ trigger_rule="none_failed",  // setting trigger rule to none_failed specifies that a task should run if none upstream tasks have failed
+) 
+
+[clean_sales_old, clean_sales_new] >> join_datasets
