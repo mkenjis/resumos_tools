@@ -104,10 +104,8 @@ res0: Long = 100
 2) countByKey(): Dict[K, int] - returns scala.collection.Map[Int,Long]
 
 transByCust.countByKey()
-res1: scala.collection.Map[Int,Long] = Map(69 -> 7, 88 -> 5, 5 -> 11, 
-10 -> 7, 56 -> 17, 42 -> 7, 24 -> 9, 37 -> 7, 25 -> 12, 52 -> 9, 14 -> 8, 
-20 -> 8, 46 -> 9, 93 -> 12, 57 -> 8, 78 -> 11, 29 -> 9, 84 -> 9, 61 -> 8, 
-89 -> 9, 1 -> 9, 74 -> 11, 6 -> 7, 60 -> 4,...
+res1: scala.collection.Map[Int,Long] = Map(69 -> 7, 88 -> 5, 5 -> 11, 10 -> 7, 56 -> 17, 42 -> 7, 24 -> 9, 37 -> 7, 25 -> 12, 52 -> 9, 14 -> 8, 
+20 -> 8, 46 -> 9, 93 -> 12, 57 -> 8, 78 -> 11, 29 -> 9, 84 -> 9, 61 -> 8, 89 -> 9, 1 -> 9, 74 -> 11, 6 -> 7, 60 -> 4,...
 
 
 3) lookup(K): RDD[(K, U)] - returns all elements with key = <key>
