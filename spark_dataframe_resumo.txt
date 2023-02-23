@@ -128,11 +128,11 @@ Handling missing values
 
 Available at df.na field, returning DataFrameNaFunctions class
 
-* drop() or drop("any") - drop row when null is any column.
-* drop("all") - drop row when null is all of columns.
-* drop(Array("col1","col2",...,"colN")) - drop row when null is on columns specified.
-* fill(value: type) - fills null columns with value matching the type
-* replace(Array("col1","col2",...,"colN"), Map(value1 -> value2)) - replaces value1 by value2 in columns listed
+* na.drop() or na.drop("any") - drop row when null is any column.
+* na.drop("all") - drop row when null is all of columns.
+* na.drop(Array("col1","col2",...,"colN")) - drop row when null is on columns specified.
+* na.fill(value: type) - fills null columns with value matching the type
+* na.replace(Array("col1","col2",...,"colN"), Map(value1 -> value2)) - replaces value1 by value2 in columns listed
 
 --------------------
 

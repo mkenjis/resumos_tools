@@ -1,6 +1,9 @@
 
 docker run hello-world
 docker pull ubuntu - pull only ubuntu image
+
+Docker Containers
+=================
 docker run ubuntu  - if image not in local repo, pull and run image
                    - otherwise run image stored in local repo
 
@@ -18,12 +21,122 @@ docker stop <contID>
 docker start <contID>
 docker exec -it <contID> bash  - access container running bash shell
 docker pause/unpause <contID>  - freezes/unfreezes container execution
-docker rm <contID>  - removes container and all data
-docker run -it <contID> bash   - creates a ephemeral container to run bash
+
+docker stop <contID>
+docker rm <contID>             - removes container and all its data
+
+docker run -it <contID> bash   - creates a ephemeral container and run bash
 
 -----------
 
 docker run -d dockersamples/static-site  - runs detached / background
-docker run -f <contID>  - stops and removes container from local repo
+docker rm -f <contID>  - force a running container to stop and remove it
+
 docker run -p <host>:<cont> <contID>  - map host -> container ports
 docker ports <contID>  - list container x hosts mapping ports
+
+
+Docker Images
+=============
+docker images / docker image ls
+docker image inspect <imgID>  - describe image in JSON format
+docker image history <imgID>  = show image layers
+
+docker run -it ubuntu bash
+# touch my-file.txt  -------------------+
+                                        V
+                                  --------------
+                                 /    R/W     /
+                                --------------
+  --------------                  --------------
+ /            /                  /            /   R/O
+--------------                  --------------
+ /            /    =======>      /            /   R/O
+--------------       RUN        --------------
+ /            /                  /            /   R/O
+--------------                  --------------
+  ubuntu image                     container
+
+
+Build Images
+============
+                                                          / | \
+  +--------+                 /------\                    /  |  \
+  |        |                /        \                +-----------+
+  |        |  --------->   |          |  --------->   | | | | | | |
+  |        |     build      \        /      run       | | | | | | | 
+  +--------+                 \------/                 +-----------+
+  Dockerfile                   image                    container
+
+FROM node:14
+WORKDIR /app-node
+COPY . .
+RUN npm install
+EXPOSE 3000
+ENTRYPOINT npm start
+
+docker image build -t <img name> .
+
+-----------
+
+docker stop $(docker container ls -q)  - stops all containers at once
+
+Parameterized Dockerfile
+------------------------
+ARG PORT_BUILD=6000   --> used during build time
+EXPOSE $PORT_BUILD
+ENV PORT=$PORT_BUILD  --> set PORT variable inside container
+
+
+Docker Hub
+==========
+docker login -u <user>
+docker push <user>/<img name>:<tag>
+docker tag <img src> <img tgt>
+
+
+Persistent Data
+===============
+docker ps -s  - shows a virtual size column in the output
+
+- bind mounts
+
+docker run -v <dir host>:<dir container> ubuntu bash
+           --mount type=bind,source=<dir host>,target=<dir container> ubuntu bash
+
+- volumes
+
+docker volume ls
+docker volume create my-volume
+docker volume inspect my-volume
+
+* my-volume is mapped in /var/lib/docker/volumes on host
+
+docker run -it -v my-volume:/app ubuntu bash
+               --mount source=my-volume,target=/app ubuntu bash
+
+- tmpfs  - only available in linux
+         - temporary dir created at memory
+		 
+docker run -it --tmpfs=/app ubuntu bash
+               --mount type=tmpfs,destination=/app ubuntu bash
+
+
+Docker Network
+==============
+docker network ls
+
+* bridge - docker NAT network
+* host - directly uses host IP
+* none - no IP address in container
+
+docker network create --driver bridge mynet  - custom networks provide DNS (name -> IP resolution)
+
+docker run -it --network mynet ubuntu bash
+
+
+Docker Compose
+==============
+docker-compose up -d  - runs containers detached
+docker-compose ps     - lists containers running
+docker-compose down

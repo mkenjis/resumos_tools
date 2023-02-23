@@ -151,7 +151,9 @@ res0: Array[(String, Double)] = Array((84,53020.619999999995), (96,36928.57), (6
 
 - merges values and transforms values to another type. 
 
-- takes zeroValue argument and two functions as arguments: a transform function transforms values from type V to type U (with the signature (U, V) => U) and a merge function merging the transformed values (with the signature (U, U) => U).
+- takes zeroValue argument and two functions arguments: 
+  * first transforms values from type V to type U  (with the signature U, V) => U) 
+  * seconde merges transformed values (with the signature (U, U) => U).
 
 val prods = transByCust.aggregateByKey(List[String]())( 
 		 (prods, tran) => prods ::: List(tran(3)),
@@ -176,9 +178,9 @@ pairrdd.aggregateByKey(zeroValue, new CustomPartitioner())(seqFunc, comboFunc).c
 
 Repartitioning RDDs
 ===================
-* partitionBy (Partitioner: partitioner) - available only on pair RDDs
-* coalesce (numPartitions: Int, shuffle: Boolean = false)
-* repartition (numPartitions: Int)
+* partitionBy (Partitioner: partitioner) - use Partitioner object to partition pair RDDs 
+* coalesce (numPartitions: Int, shuffle: Boolean = false) - merges partitions and does not shuffle
+* repartition (numPartitions: Int) - repartition and shuffle partitions
 * repartitionAndSortWithinPartition()
 
 
@@ -220,7 +222,6 @@ val totalsWithMissingProds = totalsByProd.rightOuterJoin(products)
 2) subtract And subtractByKey
 
 * subtract - returns elements from the first RDD that aren’t present in the second one. It compares complete elements (not just their keys or values)
-
 * subtractByKey - works on pair RDDs and returns elements from the first RDD whose keys aren’t in the second RDD. The second RDD doesn’t need to have values of the same type as the first one.
 
 val missingProds = products.subtractByKey(totalsByProd).values
@@ -228,8 +229,8 @@ val missingProds = products.subtractByKey(totalsByProd).values
 
 3) cogroup Transformation
 
-Performs a grouping of values by key from each RDDs. 
-Returns an pair RDD whose values are arrays of Iterable objects containing values from each RDD by key.
+- performs a grouping of values by key from each RDDs. 
+- returns an pair RDD whose values are arrays of Iterable objects containing values from each RDD by key.
 
 cogroup[W1, W2](other1: RDD[(K, W1)], other2: RDD[(K, W2)]): RDD[(K, (Iterable[V], Iterable[W1], Iterable[W2]))]
 
@@ -252,7 +253,9 @@ res1: Array[(Int, Int)] = Array((1,"n4"), (2,"n5"), (3,"n6")
 
 - zipPartitions enables you to zip over elements inside partitions
 - all RDDs need to have the same number of partitions (but not the same number of elements in them).
-- zipPartitions accepts two sets of arguments. In the first, you give it RDDs; and in the second, a function that takes a matching number of Iterator objects used for accessing elements in each partition. 
+- zipPartitions accepts two sets of arguments :
+  * in the first, you give it RDDs; 
+  * in the second, a function that takes a matching number of Iterator objects used for accessing elements in each partition. 
 - function must return a new Iterator, which can be a different type (matching the resulting RDD).
 
 val rdd1 = sc.parallelize(1 to 10, 10)
@@ -275,23 +278,21 @@ res0: Array[(Double, Array[String])] = Array((90,(48601.89,Array(90, AMBROSIA TR
 (94,(31049.07,Array(94, ATOPALM MUSCLE AND JOINT, 1544.25, 7))), (87,(26047.72,Array(87, Acyclovir, 6252.58, 4))), ..
 
 
-1) Making A Class Orderable Using The Ordered Trait
+1) Sorting with Ordered Trait
 
-The class extending Ordered has to implement the compare function, which takes as an argument an object of the same class against which to perform the comparison.
-
-The sortByKey transformation requires an argument of type Ordering, but there’s an implicit conversion in Scala from Ordered to Ordering so you can safely use this method.
+- class extending Ordered has to implement the compare function, taking as an argument object of the same class to compare against.
  
 case class Employee(lastName: String) extends Ordered[Employee] {
- override def compare(that: Employee) = this.lastName.compare(that.lastName)
+  override def compare(that: Employee) = this.lastName.compare(that.lastName)
 }
 
 
-2) Making A Class Orderable Using The Ordering Trait
+2) Sorting with Ordering Trait
 
-Define an object of type Ordering[Employee] somewhere in the scope of the function calling sortByKey. For example :
+- define an object of type Ordering[T] somewhere in the scope of the function calling sortByKey. For example :
 
 implicit val emplOrdering = new Ordering[Employee] {
- override def compare(a: Employee, b: Employee) = a.lastName.compare(b.lastName)
+  override def compare(a: Employee, b: Employee) = a.lastName.compare(b.lastName)
 }
 
 or
@@ -301,7 +302,18 @@ implicit val emplOrdering: Ordering[Employee] = Ordering.by(_.lastName)
 If defined within its scope, this implicit object will be picked up by the sortByKey transformation (called on an RDD with keys of type Employee), and the RDD will become sortable.
 
 
+RDD Dependencies
+================
+- Spark execution follows DAG model. Each RDD transformation produces a new RDD. 
+- New RDD depends on the old one. This graph of dependencies is called RDD lineage.
+- Spark packages work to be sent to executors. Every job is divided into stages based on the points where shuffles occur.
+- For each stage and each partition, tasks are created and sent to the executors to be processed. 
+
+
 Checkpoint RDD
 ==============
+- Checkpoint is a way Spark provides to persist the entire RDD to stable storage.
+- In case node failure, Spark uses the snapshot saved and doesn’t need to recompute the missing RDD pieces from the start.
+
 * rdd.checkpoint() - entire RDD is persisted to disk and RDD´s dependencies are erased.
 * sc.setCheckpointDir(<path>)
