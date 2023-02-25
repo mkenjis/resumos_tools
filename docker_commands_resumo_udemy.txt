@@ -7,7 +7,7 @@ docker --help
 
 ------------
 
-- image - binaries/libraries layers make up an application
+- image - layers of binaries/libraries, metadata makes up an application
 - container is a running instance of image
 - registry - image repository (default Docker Hub)
 
