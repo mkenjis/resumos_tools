@@ -1,0 +1,227 @@
+
+docker version  - verifies cli talks to engine
+docker info
+docker --help
+       - list new commands : docker <cmd> <sub-cmd> (options)
+	          old commands : docker <cmd> (options)
+
+------------
+
+- image - binaries/libraries layers make up an application
+- container is a running instance of image
+- registry - image repository (default Docker Hub)
+
+docker container run -d -p 80:80 -name my-nginx nginx
+                      |  |
+                      |  +-> host:container ports
+					  |  
+					  +----> runs container in background
+
+docker container ls (-a) - show running and stopped containers
+docker container stop <contID>
+docker container logs <contID> --follow
+docker container top <contID>
+docker container rm <contID> -f (force)
+
+------------
+
+- containers are not VMs
+- they are just processes running in O.S. host in a separated namespace
+
++---------------------+
+|   ps -ef / ps -aux  |
+|  +---------------+  |   same PID is the OS host
+|  |  docker top   |  |
+|  +---------------+  |
++---------------------+
+
+docker container top <contID>
+docker container inspect <contID>  - list container setup in JSON format
+docker container stats <contID>  - show metrics performance
+
+------------
+
+- no SSH to access container inside
+
+docker container run  -it  - starts a container interactively
+docker container exec -it  - run a cmd agaist a running container
+
+docker container run -it --name proxy nginx bash
+                         --name ubuntu ubuntu bash
+
+docker container start -ai <contID>
+docker container exec  -it <contID> bash
+
+
+Docker Network
+--------------			 
+- container by default connects to private virtual network called "bridge"
+- each virtual network routes through a NAT firewall on host IP
+- containers on same virtual network can talk to each other
+
+docker container port <contID>
+docker container inspect --format "{{ .NetworkSettings.IPAddress }}" <contID>  - print container IP address
+
+
+    +------+       bridge              |
+	|  C1  |<----+______               |
+    +------+     /\     \            __|
+                |  \     |          |  | 80
+	            |  /-----|--------->|  |
+    +------+     \/_____/           |  |
+	|  C2  |<----+                  |  |
+    +------+ -p 80:80               |  |
+	                                |  | eth0
+                                    |  |
+   +-------+       my_net           |  |
+   | mysql |<----+______            |  |
+   +-------+     /\     \           |  |
+                |  \     |          |  | 8080
+	            |  /-----|--------->|  |
+   +-------+     \/_____/           |__|
+   | httpd |<----+                     |
+   +-------+ -p 8080:80                |
+	                                   |
+
+docker network ls  - lists bridge, host and none networks
+docker network inspect <netID>
+docker network create --driver <driver> <net-name>
+docker network connect/disconnect
+docker container run -d --name my-nginx --networkd my_net nginx
+
+
+Docker DNS
+----------
+
+- as containers are created and removed, dynamic IP address are assigned
+- docker daemon has a built-in DNS server
+- maps container names to IP addresses transparently
+
+docker container run -d --name new-nginx --networkd my_net nginx
+docker container exec -it my-nginx ping new-nginx 
+
+
+Docker Images
+-------------
+Image - ordered layers of binaries/libraries, metadata makes up an image
+      - no complete O.S., no kernel/modules as drivers
+	  
+docker image ls
+docker pull <image>:<tag>
+docker image history <image>
+
+                +--------+ 
+                |  PORT  | -------------------------->
+    +--------+  +--------+ +--------+  
+	|  ENV   |  | COPY A | | COPY B | --------------->   
+    +--------+  +--------+ +--------+                     IMAGE LAYERS
+	|  APT   |  |  APT   | |  APT   | --------------->
+    +--------+  +--------+-+--------+----------+
+	| UBUNTU |  |  JESSIE                      | ---->
+    +--------+  +------------------------------+
+	  image1     image2     image3
+	  
+	  
+	  
+	            +--------+ 
+       +------->| CONT 3 | -------->
+       |        +--------+            container layer
+	   |  +---->| CONT 2 | -------->  R/W on top of image
+       |  |     +--------+ 
+	   |  |  +->| CONT 1 | -------->
+       |  |  |  +--------+
+    +-----------+
+	|  APACHE   | ----------------->  image layer R/O
+    +-----------+
+	
+- each container has a separate layer over image layers
+- container layer is Copy-On-Write
+
+
+docker image inspect <image>
+docker image tag <src-img>:<tag> <tgt-img>:<tag>
+docker login  ( stores credentials in .docker/config.json )
+docker image push <image>:<tag>
+
+
+Build Images
+------------
+Dockerfile - recipe for creating an image
+
+FROM <src-img>:<tag>
+ARG <arg-name>=<value>
+ENV <var-name>=<value>
+EXPOSE <port>
+RUN <cmd1> && <cmd2>
+WORKDIR <dir>
+COPY <src> <dest>
+CMD [ cmd1, cmd2, ... ]
+
+docker image build -f <img-name> .
+
+
+Persistent Data
+---------------
+- containers are designed to be immutable and ephemeral
+- data in container is lost if removed
+- solution : - volumes : storage location outside container UFS
+             - bind mounts : container path mapped to host path
+
+Volumes :
+- Docker VOLUME stanza indicates container path uses storage location outside container UFS
+- if container removed, volume oulives container
+
+docker volume ls
+docker image inspect <img>  - find "Volume" JSON entry-key
+docker container inspect <contID>  - find "Mounts" JSON entry-key
+docker volume inspect <volID>
+
+docker container run -d --name mysql
+       -e MYSQL_ALLOW_EMPTY_PASSWORD=true
+	   -v mysql-db:/var/lig/mysql mysql
+	   
+Bind Mounts :
+- not defined in Dockerilfe but in container run
+- maps a host file/dir to a container file/dir
+
+docker container -d --name nginx -p 80:80
+       -v $(pwd):/var/share/nginx/html nginx/html
+
+
+Docker Compose
+--------------
+- save container run settings in an easy-to-read YAML file
+- configure relationships between diff containers
+
+docker-compose.yml
+------------------
+version: 3.1   # minimum 2
+services:
+  svc-name:
+    image:
+	command:
+	environment:
+	volumes:
+	networks:
+  svc2-name:
+    ...
+	
+volumes:
+  ...
+networks:
+  ...
+  
+docker-compose up ( -d)  - runs in background
+docker-compose down
+docker-compose logs
+docker-compose ps  - show running containers
+docker-compose top  - show running processes of each container
+docker-compose build  - checks out for build entries in docker-compose.yml
+                      - if image not found, build image with Dockerfile 
+...
+services:
+  proxy:
+    image: nginx-custom
+	build:
+	  context: .
+	  dockerfile: nginx.Dockerfile

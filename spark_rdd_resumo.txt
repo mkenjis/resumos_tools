@@ -33,19 +33,19 @@ val licLines = sc.textFile("numbers.txt")                      // reading from a
 Manipulate RDDs
 ===============
 
-1) map(func: (T) => U): RDD[U] - returns a RDD with elements transformed by func 
+1) map(func: (T) => U): RDD[U] - returns elements transformed by func 
 
 numberRDD.map(num => num * num)
 
 
 2) flatMap(func: (T) => Iterable[U]): RDD[U] - func must return a Iterable
-                                             - returns a RDD with elements flatten out
+                                             - returns with elements flatten out
 val idsStr = licLines.flatMap(_.split(","))
 idsStr.collect()
 res11: Array[String] = Array(15, 16, 20, 20, 77, 80, 94, 94, 98, 16, 31, 31, 15, 20)
 
 
-3) filter(func: (T)): RDD[T] - returns a RDD with elements that satisfy func
+3) filter(func: (T)): RDD[T] - returns with elements that satisfy func
 
 licLines.filter(line => line.contains("BSD"))
 
@@ -55,7 +55,7 @@ licLines.filter(line => line.contains("BSD"))
 numberRDD.reduce( (x, y) => x + y )   // returns 55
 
 
-5) distinct(): RDD[T] - returns a RDD with unique elements
+5) distinct(): RDD[T] - returns unique elements
 
 val intIds = idsStr.map(_.toInt)
 intIds.distinct.collect()
@@ -138,7 +138,7 @@ transByCust = transByCust.flatMapValues(tran => {
 6) reduceByKey(func: (V, V) => V): RDD[(K, V)] - merges all values for a key into a single value
 
 
-7) foldByKey(zeroValue: V)(func: (V, V) => V): RDD[(K, V)] - same as reduceByKey, but it requires an additional parameter, zeroValue, in the parameter list 
+7) foldByKey(zeroValue: V)(func: (V, V) => V): RDD[(K, V)] - same as reduceByKey, but it requires zeroValue parameter in the parameter list 
 
 val amounts = transByCust.mapValues(t => t(5).toDouble)
 val totals = amounts.foldByKey(0)((p1, p2) => p1 + p2).collect()
@@ -150,7 +150,7 @@ res0: Array[(String, Double)] = Array((84,53020.619999999995), (96,36928.57), (6
 - merges values and transforms values to another type. 
 
 - takes zeroValue argument and two functions arguments: 
-  * first transforms values from type V to type U  (with the signature U, V) => U) 
+  * first transforms values from type V to type U  (with the signature (U, V) => U) 
   * seconde merges transformed values (with the signature (U, U) => U).
 
 val prods = transByCust.aggregateByKey(List[String]())( 
@@ -201,13 +201,10 @@ Joining RDDs
 
 1) Consider RDD(K, V) joined with a RDD(K, W) :
 
-* join — returns elements of type (K, (V, W)) matching the keys in the first and second RDDs. For non-matching keys, no elements will be returned.
-
-* leftOuterJoin — returns elements of type (K, (V,Option(W))). For non-matching keys in the second RDD, it returns elements  (key, (v, None)).
-
-* rightOuterJoin — returns elements of type (K, (Option(V), W)). For non-matching keys in the first RDD, it returns elements (key, (None, w)).
-
-* fullOuterJoin — returns elements of type (K, (Option(V), Option(W)). For non-matching keys in the first or second RDD, it returns both elements (key, (v, None)) and (key, (None, w)).
+* join — returns RDD (K, (V, W)) matching the keys in the first and second RDDs. For non-matching keys, no elements will be returned.
+* leftOuterJoin — returns RDD (K, (V,Option(W))). For non-matching keys in the second RDD, it returns (key, (v, None)).
+* rightOuterJoin — returns RDD (K, (Option(V), W)). For non-matching keys in the first RDD, it returns (key, (None, w)).
+* fullOuterJoin — returns RDD (K, (Option(V), Option(W)). For non-matching keys in the first or second RDD, it returns both  (key, (v, None)) and (key, (None, w)).
 
 val totalsAndProds = totalsByProd.join(products)
 totalsAndProds.first()
@@ -314,4 +311,4 @@ Checkpoint RDD
 - In case node failure, Spark uses the snapshot saved and doesn’t need to recompute the missing RDD pieces from the start.
 
 * rdd.checkpoint() - entire RDD is persisted to disk and RDD´s dependencies are erased.
-* sc.setCheckpointDir(<path>)
+* sc.setCheckpointDir(<path>) - sets directory to save checkpoint snapshot

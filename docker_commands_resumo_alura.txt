@@ -1,20 +1,20 @@
 
 docker run hello-world
-docker pull ubuntu - pull only ubuntu image
+docker pull ubuntu - pulls only ubuntu image
 
 Docker Containers
 =================
-docker run ubuntu  - if image not in local repo, pull and run image
-                   - otherwise run image stored in local repo
+docker run ubuntu  - if image not in local repo, pulls and runs image
+                   - otherwise runs image stored in local repo
 
 docker container run ubuntu
-docker ps / docker container ls ( -a )
+docker ps / docker container ls ( -a )  - also lists stopped containers
 
 docker run ubuntu sleep 1d  - keeps image up while slept.
 
-+--------+  --------> +--------------+
-|  HOST  |   request  |  DOCKER HUB  |
-+--------+ <--------  +--------------+
++--------+   --------> +--------------+
+|  HOST  |   request   |  DOCKER HUB  |
++--------+ <--------   +--------------+
            pull image
 			  
 docker stop <contID>
@@ -22,15 +22,14 @@ docker start <contID>
 docker exec -it <contID> bash  - access container running bash shell
 docker pause/unpause <contID>  - freezes/unfreezes container execution
 
-docker stop <contID>
-docker rm <contID>             - removes container and all its data
+docker rm <contID>             - removes stopped container and all its data
 
 docker run -it <contID> bash   - creates a ephemeral container and run bash
 
 -----------
 
 docker run -d dockersamples/static-site  - runs detached / background
-docker rm -f <contID>  - force a running container to stop and remove it
+docker rm -f <contID>  - force running container to stop and be removed it
 
 docker run -p <host>:<cont> <contID>  - map host -> container ports
 docker ports <contID>  - list container x hosts mapping ports
@@ -46,7 +45,7 @@ docker run -it ubuntu bash
 # touch my-file.txt  -------------------+
                                         V
                                   --------------
-                                 /    R/W     /
+                                 /    R/W     /   COPY-ON-WRITE
                                 --------------
   --------------                  --------------
  /            /                  /            /   R/O
@@ -75,7 +74,8 @@ RUN npm install
 EXPOSE 3000
 ENTRYPOINT npm start
 
-docker image build -t <img name> .
+docker image build -t node-img .
+docker container run -d -p 80:3000 --name node-app node-img
 
 -----------
 
@@ -84,8 +84,8 @@ docker stop $(docker container ls -q)  - stops all containers at once
 Parameterized Dockerfile
 ------------------------
 ARG PORT_BUILD=6000   --> used during build time
-EXPOSE $PORT_BUILD
 ENV PORT=$PORT_BUILD  --> set PORT variable inside container
+EXPOSE $PORT_BUILD
 
 
 Docker Hub
@@ -99,24 +99,22 @@ Persistent Data
 ===============
 docker ps -s  - shows a virtual size column in the output
 
-- bind mounts
+* bind mounts
 
-docker run -v <dir host>:<dir container> ubuntu bash
-           --mount type=bind,source=<dir host>,target=<dir container> ubuntu bash
+docker run -it -v <dir host>:<dir container> ubuntu bash
+               --mount type=bind,source=<dir host>,target=<dir container> ubuntu bash
 
-- volumes
+* volumes
 
 docker volume ls
-docker volume create my-volume
+docker volume create my-volume   ( obs: my-volume is mapped in /var/lib/docker/volumes on host )
 docker volume inspect my-volume
-
-* my-volume is mapped in /var/lib/docker/volumes on host
 
 docker run -it -v my-volume:/app ubuntu bash
                --mount source=my-volume,target=/app ubuntu bash
 
-- tmpfs  - only available in linux
-         - temporary dir created at memory
+* tmpfs  - only available in linux
+         - temporary dir, not created in host filesystem
 		 
 docker run -it --tmpfs=/app ubuntu bash
                --mount type=tmpfs,destination=/app ubuntu bash
@@ -130,7 +128,7 @@ docker network ls
 * host - directly uses host IP
 * none - no IP address in container
 
-docker network create --driver bridge mynet  - custom networks provide DNS (name -> IP resolution)
+docker network create --driver bridge mynet  - custom network provide DNS (name -> IP resolution)
 
 docker run -it --network mynet ubuntu bash
 

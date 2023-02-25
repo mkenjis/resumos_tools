@@ -93,13 +93,12 @@ Referecing columns in Dataframes
 import org.apache.spark.sql.functions._
 
 * Date time - unix_timestamp, from_unixtime, to_date, current_date, current_timesatmp, date_add, date_sub, add_months, datediff, months_between, dayofmonth, dayofyear, weekofyear, second, minute, hour, month
-* String - concat, length, levenshtein, locate, lower, upper, ltrim, rtrim, trim, lpad, rpad, repeat, reverse, split, substring, base64
+* String - concat, length, locate, lower, upper, ltrim, rtrim, trim, lpad, rpad, repeat, reverse, split, substring
 * Math - cos, acos, sin, asin, tan, atan, ceil, floor, exp, factorial, log, pow, radian, degree, sqrt, hex, unhex
-Cryptography - cr32, hash, md5, sha1, sha2
-* Aggregation - approx._count_distinct, countDistinct, sumDistinct, avg, corr, count, first, last, max, min, skewness, sum
+* Aggregation - countDistinct, sumDistinct, avg, corr, count, first, last, max, min, skewness, sum
 * Collection - array_contain, explode, from_json, size, sort_array, to_json
 * Window - dense_rank, lag, lead, ntile, rank, row_number
-* Miscellaneous - coalesce, isNan, isnull, isNotNull, monotonically_increasing_id, lit, when
+* Miscellaneous - coalesce, isNan, isnull, isNotNull, monotonically_increasing_id, lit, when.otherwise
 
 --------------------
 
@@ -170,14 +169,14 @@ val spark = SparkSession.builder().
  enableHiveSupport().
  getOrCreate()
 
-- Spark catalog
+Spark catalog
+-------------
+- Dataframes can be registered as tables in Catalog. 
+- Catalog stores the table definition (where and how Dataframe´s data is stored).
+- HiveContext creates a Derby database under metastore_db. To change the directory is located, set the hive.metastore.warehouse.dir property in your hive-site.xml file.
 
-Dataframes can be registered as tables in Catalog. 
-Catalog stores the table definition (where and how Dataframe´s data is stored).
-HiveContext creates a Derby database under metastore_db. To change the directory is located, set the hive.metastore.warehouse.dir property in your hive-site.xml file.
-
-- remote Hive metastore
-
+remote Hive metastore
+-----------------------
 to configure Spark to use a remote Hive metastore, set conf/hive-site.xml file with :
 * javax.jdo.option.ConnectionURL — JDBC connection URL
 * javax.jdo.option.ConnectionDriverName — Class name of the JDBC driver
@@ -190,12 +189,12 @@ to configure Spark to use a remote Hive metastore, set conf/hive-site.xml file w
 
 Built-in data sources: CSV, JSON, Parquet, ORC, JDBC
 
-format: DataFrameReader.format().option().schema().load()
-------
+syntax: DataFrameReader.format().option().schema().load()
+
 val postsDf = spark.read.format("json").load("data/postsjson")
 
-format: DataFrameReader.option().schema().[csv/json/parquet/orc/jdbc/table]()
-------
+syntax: DataFrameReader.option().schema().[csv/json/parquet/orc/jdbc/table]()
+
 val postsDf = spark.read.json("postsjson")
 
 val postsDf = spark.read.table("posts")
