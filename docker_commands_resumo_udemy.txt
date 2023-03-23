@@ -7,11 +7,11 @@ docker --help
 
 ------------
 
-- image - layers of binaries/libraries, metadata makes up an application
+- image - layers of binaries/libraries, metadata that makes up an application
 - container is a running instance of image
 - registry - image repository (default Docker Hub)
 
-docker container run -d -p 80:80 -name my-nginx nginx
+docker container run -d -p 80:80 --name my-nginx nginx
                       |  |
                       |  +-> host:container ports
 					  |  
@@ -30,18 +30,18 @@ docker container rm <contID> -f (force)
 
 +---------------------+
 |   ps -ef / ps -aux  |
-|  +---------------+  |   same PID is the OS host
+|  +---------------+  |   same PID is the O.S. host
 |  |  docker top   |  |
 |  +---------------+  |
 +---------------------+
 
 docker container top <contID>
-docker container inspect <contID>  - list container setup in JSON format
+docker container inspect <contID>  - list container settings in JSON format
 docker container stats <contID>  - show metrics performance
 
 ------------
 
-- no SSH to access container inside
+- no need SSH to access container inside
 
 docker container run  -it  - starts a container interactively
 docker container exec -it  - run a cmd agaist a running container
@@ -87,15 +87,15 @@ docker network ls  - lists bridge, host and none networks
 docker network inspect <netID>
 docker network create --driver <driver> <net-name>
 docker network connect/disconnect
-docker container run -d --name my-nginx --networkd my_net nginx
+docker container run -d --networkd my_net --name my-nginx nginx
 
 
 Docker DNS
 ----------
 
-- as containers are created and removed, dynamic IP address are assigned
+- as containers are created and removed, different IP address are assigned
 - docker daemon has a built-in DNS server
-- maps container names to IP addresses transparently
+- it maps container names to IP addresses transparently
 
 docker container run -d --name new-nginx --networkd my_net nginx
 docker container exec -it my-nginx ping new-nginx 
@@ -103,7 +103,7 @@ docker container exec -it my-nginx ping new-nginx
 
 Docker Images
 -------------
-Image - ordered layers of binaries/libraries, metadata makes up an image
+Image - ordered layers of binaries/libraries, metadata that makes up an image
       - no complete O.S., no kernel/modules as drivers
 	  
 docker image ls
@@ -125,13 +125,13 @@ docker image history <image>
 	  
 	            +--------+ 
        +------->| CONT 3 | -------->
-       |        +--------+            container layer
+       |        +--------+            3 different containers
 	   |  +---->| CONT 2 | -------->  R/W on top of image
        |  |     +--------+ 
 	   |  |  +->| CONT 1 | -------->
        |  |  |  +--------+
     +-----------+
-	|  APACHE   | ----------------->  image layer R/O
+	|  APACHE   | ----------------->  image layer R/O on the bottom
     +-----------+
 	
 - each container has a separate layer over image layers
@@ -185,13 +185,13 @@ Bind Mounts :
 - maps a host file/dir to a container file/dir
 
 docker container -d --name nginx -p 80:80
-       -v $(pwd):/var/share/nginx/html nginx/html
+       -v $(pwd):/var/share/nginx/html nginx
 
 
 Docker Compose
 --------------
 - save container run settings in an easy-to-read YAML file
-- configure relationships between diff containers
+- configure relationships between diff. containers
 
 docker-compose.yml
 ------------------
@@ -217,7 +217,7 @@ docker-compose logs
 docker-compose ps  - show running containers
 docker-compose top  - show running processes of each container
 docker-compose build  - checks out for build entries in docker-compose.yml
-                      - if image not found, build image with Dockerfile 
+                      - if image not found, build image in dockerfile entry 
 ...
 services:
   proxy:

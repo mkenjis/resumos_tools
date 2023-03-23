@@ -1,0 +1,171 @@
+
+docker swarm init --advertise-addr <IP>
+docker swarm join-token [ worker | manager ]
+  |
+  +--> provides command to join nodes as below:
+         docker swarm join --token <TOKEN> <IP>:2377
+		 
+Notice: management swarm commands can be run only on managers
+------
+
+docker node ls 
+
+docker node leave <node-ID> 
+then, docker node rm <node-ID>   ( removes node from swarm )
+
+docker node inspect <node-ID>
+
+docker service create -p 8080:3000 aluracursos/barbearia
+  |
+  +--> starts a container as service in the context of Swarm
+  
+docker service ls
+
+               +--------+       +-----------+
+            /  | task 1 | ----- | container |
++---------+/ : +--------+       +-----------+
+| Service |  :
++---------+\ : +--------+       +-----------+
+            \  | task N | ----- | container |
+               +--------+       +-----------+
+
+docker service ps <svc-ID>  - also lists which nod is/are running tasks/containers
+
+
+Routing Mesh
+============
+                    A  80
+                   /|\
+                 +-----+
+      +--------> ||||||| <--------+
+      |          +-----+          |
+  192.168.99        |             |        CLUSTER
+   +-----+       +-----+       +-----+      SWARM
+   | === |       | === |       | === |
+   | === |       | === |       | === |
+   |     |       |     |       |     |
+   |     |       |     |       |     |
+   +-----+       +-----+       +-----+
+      A  .112       A .118        A .119
+        \           |            /
+          \+------------------+/ 
+           |   Routing Mesh   |
+		   +------------------+
+		            A
+					|  8080
+					|
+		   
+docker swarm leave --force
+
+   - if executed in last manager, no management cmds will worker
+   - swarm cluster is not more available
+   
+To backup swarm metadata:
+
+   cd /var/lib/docker/swarm
+   cp -R . /docker/backup
+   
+To restore:
+
+   cp -R /docker/backup /var/lib/docker/swarm
+   docker swarm init --advertise-addr <IP> --force-new-cluster
+
+  
+Adding a Manager
+================
+docker swarm join-token manager
+docker node ls --format "{{ .HostName }} {{ .ManagerStatus }}"
+docker swarm join --token <TOKEN-MANAGER>
+
+Adding a Worker
+===============
+docker swarm join-token worker
+docker swarm join --token <TOKEN-WORKER>
+
+
+RAFT Consensus
+==============
+Rules: - supports ( N-1 )/2 failures
+       - should have at minimum ( N/2 )+1 quorum
+
+       N = # managers ( maximum 7 because causes performance issues (I/O) )
+	   
+Removing Unreachable Manager
+============================
+docker node demote <node-ID>
+docker node run <node-ID>
+
+docker service rm $(docker service ls -q)
+
+
+Turn Manager Unavailable to Run Services
+========================================
+docker node update --availability drain <hostname>
+
+Turn Service to Run on Workers
+==============================
+docker service update --constraint-add node.role==workder <svc-ID>
+
+
+Replicated Services
+===================
+docker service update --replicas 3 <svc-ID>
+
+                +---+               +---+
+                |||||               |||||
+                +---+               +---+
+               +-----+   +-----+   +-----+
+      +----+   |     |   |     |   |     |
+      |    |   +-----+   +-----+   +-----+
+      |DIS |      |         |         |
+ ---> |PA  |------+---------+---------+--
+      |TCH |      |         |         |
+      |ER  |   +-----+   +-----+   +-----+
+      |    |   |     |   |     |   |     |
+      +----+   +-----+   +-----+   +-----+
+	                      +---+
+						  |||||
+						  +---+
+Global Services
+===============
+docker service create -p 8080:3000 --mode global <svc-ID>
+
+                +---+     +---+     +---+
+                |||||     |||||     |||||
+                +---+     +---+     +---+
+               +-----+   +-----+   +-----+
+      +----+   |     |   |     |   |     |
+      |    |   +-----+   +-----+   +-----+
+      |DIS |      |         |         |
+ ---> |PA  |------+---------+---------+--
+      |TCH |      |         |         |
+      |ER  |   +-----+   +-----+   +-----+
+      |    |   |     |   |     |   |     |
+      +----+   +-----+   +-----+   +-----+
+	            +---+     +---+     +---+
+				|||||	  |||||     |||||
+				+---+     +---+     +---+
+				
+Driver Overlay
+==============
+  - allows inter-communication among nodes and protected (TLS cripto)
+
+docker network ls
+docker node inspect <node-ID> --pretty  
+
+
+Service Discovery
+=================
+docker network create --driver overlay <net-name>
+docker network inspect <net-name>
+docker service create --name servico 
+       --network <net-name> --replicas 2 alpine sleep 1d
+
+Deploy Stacks
+=============
+(edit a docker-compose.yml)
+docker stack deploy -c docker-compose.yml <stack>
+docker stack ls
+docker service --format "{{ .Name }} {{ .Replicas }}"
+docker stack rm <stack>
+docker stack
