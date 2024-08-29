@@ -25,7 +25,7 @@ metadata:
 spec:
   containers:
     - name: nginx-container
-	  image: nginx:latest
+      image: nginx:latest
 	  
 kubectl apply -f primeiro-pod.yml  ( cria/atualiza pod )
 
@@ -40,7 +40,7 @@ kubectl exec -it <pod> -- bash
 ClusterIP - provides a fixed IP to access a pod even being reborn inside the cluster
           - acessible only inside the cluster
 
-ex: pod2.yml
+vi pod2.yml
 
 apiVersion: v1
 kind: Pod
@@ -51,11 +51,11 @@ metadata:
 spec:
   containers:
     - name: container-pod2
-	  image: nginx:latest
-	  ports:
-	    - containerPort: 80
+      image: nginx:latest
+      ports:
+        - containerPort: 80
 		
-ex: svc-pod2.yml
+vi svc-pod2.yml
 
 apiVersion: v1
 kind: Service
@@ -65,7 +65,7 @@ spec:
   type: ClusterIP
   ports:
     - port: 9000
-	  targetPort: 80
+      targetPort: 80
   selector:
     app: segundo-pod
 
@@ -86,7 +86,7 @@ kubectl delete -f svc-pod2.yml  ( declarativo )
 NodePort - provides a fixed IP to access a pod even being reborn inside the cluster
          - acessible outside the cluster
 
-ex: pod1.yml
+vi pod1.yml
 
 apiVersion: v1
 kind: Pod
@@ -97,11 +97,11 @@ metadata:
 spec:
   containers:
     - name: container-pod1
-	  image: nginx:latest
-	  ports:
-	    - containerPort: 80
+      image: nginx:latest
+      ports:
+        - containerPort: 80
 		
-ex: svc-pod1.yml
+vi svc-pod1.yml
 
 apiVersion: v1
 kind: Service
@@ -111,8 +111,8 @@ spec:
   type: NodePort
   ports:
     - port: 80
-	 # targetPort: 80
-	  nodePort: 30000-32767  
+      # targetPort: 80
+      nodePort: 30000-32767  
   selector:
     app: primeiro-pod
 
@@ -140,7 +140,7 @@ kubectl delete svc --all
 -------------------
 Env variables
 
-ex: db.yml
+vi db.yml
 
 apiVersion: v1
 kind: Pod
@@ -151,21 +151,21 @@ metadata:
 spec:
   containers:
     - name: db-container
-	  image: mysql:latest
-	  ports:
-	    - containerPort: 3306
-	  env:
-	    - name: "MYSQL_ROOT_PASSWORD"
-		  value: xxx
-		- name: "MYSQL_DATABASE"
-		  value: xxx
-		- name: "MYSQL_PASSWORD"
-		  value: xxx
+      image: mysql:latest
+      ports:
+        - containerPort: 3306
+      env:
+        - name: "MYSQL_ROOT_PASSWORD"
+          value: xxx
+        - name: "MYSQL_DATABASE"
+          value: xxx
+        - name: "MYSQL_PASSWORD"
+          value: xxx
 		  
 -------------------
 ConfigMap
 
-ex: configmap.yml
+vi configmap.yml
 
 apiVersion: v1
 kind: ConfigMap
@@ -180,22 +180,22 @@ kubectl apply -f configmap.yml
 kubectl get configmap
 kubectl describe configmap <config>
 
-No Pod:
+inside Pod:
 
 spec:
   containers:
     - name: db-container
-	  image: mysql:latest
-	  ports:
-	    - containerPort: 3306
-	  envFrom:
-	    configMapRef:
-		  name: db-config
+      image: mysql:latest
+      ports:
+        - containerPort: 3306
+      envFrom:
+        configMapRef:
+          name: db-config
 		  
 -------------------
 ReplicaSets - automatically manages # pods up in case of failures, starting new pods
 
-Ex : pod1-rs.yml
+vi pod1-rs.yml
 
 apiVersion: apps/v1
 kind: ReplicaSet
@@ -203,20 +203,20 @@ metadata:
   name: pod1-rs
 spec:
   replicas: 3
-  template:
-	metadata:                   --+
-	  name: pod1                  |
-	  labels:                     |
-		app: pod1                 |
+  template:                     --+
+    metadata:                     |
+      name: pod1                  |
+      labels:                     |
+      app: pod1                 |
 	spec:                          >  pod & container definition
-	  containers:                 |
-		- name: pod1-container    |
-		  image: nginx:latest     |
-		  ports:                  |
+      containers:                 |
+        - name: pod1-container    |
+          image: nginx:latest     |
+          ports:                  |
 			- containerPort: 80 --+
   selector:
     matchLabels:
-	  app: pod1
+      app: pod1
 
 
 kubectl apply -f pod1-rs.yml
@@ -228,7 +228,7 @@ kubectl delete -f pod1-rs.yml
 Deployment - controls and register revisions between deployments.
            - allow rollbacks between deployments.
 
-+--------------------------------------------		   
++--------------------------------------------
 | Deployment
 | +------------------------------------------
 | | ReplicaSet
@@ -238,7 +238,7 @@ Deployment - controls and register revisions between deployments.
 | +------------------------------------------
 +--------------------------------------------
 
-Ex : nginx-deployment.yml
+vi nginx-deploy.yml
 
 apiVersion: apps/v1
 kind: Deployment
@@ -246,29 +246,29 @@ metadata:
   name: nginx-deployment
 spec:
   replicas: 3
-  template:
-	metadata:                   --+
-	  name: nginx-pod             |
-	  labels:                     |
-		app: nginx-pod             |
-	spec:                          >  pod & container definition
-	  containers:                 |
-		- name: nginx-container   |
-		  image: nginx:stable     |
-		  ports:                  |
-			- containerPort: 80 --+
+  template:                     --+
+    metadata:                     |
+      name: nginx-pod             |
+      labels:                     |
+        app: nginx-pod             |
+    spec:                          >  pod & container definition
+      containers:                 |
+        - name: nginx-container   |
+          image: nginx:stable     |
+          ports:                  |
+            - containerPort: 80 --+
   selector:
     matchLabels:
-	  app: nginx-pod
+      app: nginx-pod
 
 
-kubectl apply -f nginx-deployment.yml
+kubectl apply -f nginx-deploy.yml
 kubectl get deployments ( --watch )
 
 Rollout
 -------
 kubectl rollout history deployment <deploy>
-kubectl apply -f nginx-deployment.yml --record
+kubectl apply -f nginx-deploy.yml --record
 kubectl annotate deployment <deploy> kubernetes.io/change-cause="deploy image latest"
 
 Rollback
@@ -276,13 +276,14 @@ Rollback
 kubectl rollout undo deployment <deploy> --to-revision=2
 
 kubectl delete deployment <deploy>
-kubectl delete -f nginx-deployment.yml
+kubectl delete -f nginx-deploy.yml
 
 -------------------
-Volumes - are persistent if containers die but not if pod die.
-        - files created in the volume are kept
+Volumes - files are persisted in pods
+        - if pods die, volumes and data are lost
+		- maps a host file/dir to a container file/dir
 
-Ex : pod-volume.yml
+vi pod-volume.yml
 
 apiVersion: v1
 kind: Pod
@@ -291,24 +292,339 @@ metadata:
 spec:
   containers:
     - name: nginx-container
-	  image: nginx:latest
-	  volumeMounts:
-	    - mountPath : /volume1
-		  name : primeiro-volume
+      image: nginx:latest
+      volumeMounts:
+        - mountPath : /volume1
+          name : primeiro-volume
 
     - name: jenkins-container
-	  image: jenkins:alpine
-	  volumeMounts:
-	    - mountPath : /volume1
-		  name : primeiro-volume
+      image: jenkins:alpine
+      volumeMounts:
+        - mountPath : /volume1
+          name : primeiro-volume
 
   volumes:
     - name: primeiro-volume
-	  hostPath:
-	    path: /home/data
-		type: Directory / DirectoryOrCreate
+      hostPath:
+        path: /home/data
+        type: Directory / DirectoryOrCreate
 		
 
 kubectl apply -f pod-volume.yml
 
 kubectl exec -it pod-volume --container nginx-container -- bash
+
+kubectl exec -it pod-volume --container jenkins-container -- bash
+
+
+-------------------
+
+PersistentVolumes - allocates a disk volume
+PersistentVolumeClaim - claims a pv according to matching criteria
+
+Ex:
+
+vi pv.yml
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-1
+spec:
+  capacity:
+    storage: 10Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: default
+
+kubectl apply -f pv.yml
+kubectl get pv
+
+vi pvc.yml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  storageClassName: default
+  resources:
+    requests:
+      storage: 10Gi
+	  
+kubectl apply -f pvc.yml
+kubectl get pvc
+
+vi pod-pvc.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-pvc
+spec:
+  containers:
+    - name: nginx-container
+	  image: nginx
+	  volumeMounts:
+	    - mountPath: /volume-dentro-container
+		  name: primeiro-pv
+  volumes:
+    - name: primeiro-pv
+	  persistentVolumeClaim:
+	    claimName: pvc-1
+
+kubectl apply -f pod-pvc.yml
+
+
+-------------------
+StorageClass - manages disks and volumes automatically
+             - creates pv's dinamically as soon as pvc's are created
+
+Ex :
+
+First create a hostpath storage class if using on-premise installation :
+
+https://computingforgeeks.com/dynamic-hostpath-pv-creation-in-kubernetes-using-local-path-provisioner/?expand_article=1
+
+vi sc.yml
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: slow
+provisioner: rancher.io/local-path
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+
+
+kubectl apply -f sc.yml
+kubectl get sc   ( show standard(default) and other SCs)
+
+vi pvc.yml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-2
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: slow
+
+kubectl apply -f pvc.yml
+kubectl get pvc
+kubectl get pv
+
+vi pod-sc.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-sc
+spec:
+  containers:
+    - name: nginx-container
+      image: nginx
+      volumeMounts:
+        - mountPath: /volume-dentro-container
+          name: primeiro-pv
+  volumes:
+    - name: primeiro-pv
+      persistentVolumeClaim:
+        claimName: pvc-2
+
+kubectl apply -f pod-sc.yml
+
+
+-------------------
+StatefulSets - files are persisted even containers/pods die
+             - files are stored in a PV (internal to kubernetes) create in default StorageClass 
+			 - each pod has a pvc and pv
+			 
+ +-------------------------------------+
+ |  StatefulSet                        |
+ |  +------+    +-------+    +------+  |
+ |  | Pod  |----|  PVC  |----|  PV  |  |
+ |  +------+    +-------+    +------+  |
+ |  +------+    +-------+    +------+  |
+ |  | Pod  |----|  PVC  |----|  PV  |  |
+ |  +------+    +-------+    +------+  |
+ |  +------+    +-------+    +------+  |
+ |  | Pod  |----|  PVC  |----|  PV  |  |
+ |  +------+    +-------+    +------+  |
+ +-------------------------------------+
+ 
+Ex : 
+
+First create a hostpath storage class if using on-premise installation :
+
+https://computingforgeeks.com/dynamic-hostpath-pv-creation-in-kubernetes-using-local-path-provisioner/?expand_article=1
+
+vi imagens-pvc.yml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: imagens-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: default   ( use default SC available at GCP )
+  resources:
+    requests:
+      storage: 100Mi
+
+kubectl apply -f imagens-pvc.yml
+
+vi sessao-pvc.yml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sessao-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: default   ( use default SC available at GCP )
+  resources:
+    requests:
+      storage: 50Mi
+
+kubectl apply -f sessao-pvc.yml
+
+kubectl get pvc
+kubectl get pv
+kubectl get sc   ( show default StorageClass where pvs were allocated )
+
+
+vi sistema-noticias-sset.yml
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sistema-noticias-sset
+spec:
+  replicas: 1
+  template:                     --+
+    metadata:                     |
+      name: sistema-noticias      |
+      labels:                     |
+        app: sistema-noticias     |
+    spec:                          >  pod & container definition
+      containers:                 |
+        - name: nginx-container   |
+          image: aluracursos/sistema-noticias:1
+          ports:                  |
+            - containerPort: 80 --+
+          volumeMounts:
+            - name: imagens
+              mountPath: /var/www/html/uploads
+            - name: sessao
+              mountPath: /tmp
+      volumes:
+        - name: imagens
+          persistentVolumeClaim:
+            claimName: imagens-pvc
+        - name: sessao
+          persistentVolumeClaim:
+            claimName: sessao-pvc	  
+  selector:
+    matchLabels:
+      app: sistema-noticias
+  serviceName: sistema-noticias  --> should have a Service created
+  
+kubecl apply -f sistema-noticias-sset.yml   ( PVs are created dinamically using default SC and PVCs are bound to PVs created )
+
+
+-------------------
+
+HorizontalPodAutoscaler - automatically scales pods if CPU/RAM reaches a limit
+
+Ex:
+
+vi nginx-deploy.yml 
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 2
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: nginx-pod
+    spec:
+      containers:
+        - name: nginx-container
+          image: nginx:stable
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+  selector:
+    matchLabels:
+      app: nginx-pod
+
+kubectl apply -f nginx-deploy.yml  
+vi nginx-hpa.yml
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nginx-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-deployment
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+
+kubectl apply -f nginx-hpa.yml
+kubectl get hpa
+kubectl describe hpa
+
+vi nginx-svc.yml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-svc
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      # targetPort: 80
+      nodePort: 30000 
+  selector:
+    app: nginx-pod
+
+
+install metrics server ( https://github.com/kubernetes-sigs/metrics-server )
+
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
+stress.sh
+---------
+for i in $(seq 10000); do 
+  curl 192.168.0.18:30000
+  sleep $1
+done

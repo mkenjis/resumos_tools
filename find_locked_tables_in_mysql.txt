@@ -1,0 +1,21 @@
+HOW TO FORCE UNLOCK for locked tables in MySQL:
+
+1) Enter MySQL
+
+mysql -u your_user -p
+
+2) Let's see the list of locked tables
+
+mysql> show open tables where in_use>0;
+
+3) Let's see the list of the current processes, one of them is locking your table(s)
+
+mysql> show processlist;
+
+4) Kill one of these processes
+
+mysql> kill <put_process_id_here>;
+
+
+
+SHOW OPEN TABLES WHERE `Table` LIKE '%[eventos]%' AND `Database` LIKE '[monitoramento_prudencial_hml]' AND In_use > 0;

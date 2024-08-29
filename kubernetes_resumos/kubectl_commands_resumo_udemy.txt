@@ -72,10 +72,28 @@ Diff
 ----
 kubectl diff -f app.yml (  compares app.yml against what is current in server )
 
+Nodes Info
+----------
+kubectl get nodes
+kubectl describe nodes  ( show complete report all nodes (master/workers) )
+
 Namespaces
 ----------
 kubectl get namespaces
-kubectl get all --all-namespaces
+kubectl get all --all-namespaces  ( show complete report all namespaces (system and customs) )
+
+kubectl describe namespaces
+
+kubectl create namespace <namespace>
+
+kubectl config set-context --current --namespace=<namespace>
+
+alias kubens='f() { kubectl config set-context --current --namespace=$1 ; }; f'
+
+curl <nodeport name>.<namespace>.svc.cluster.local   
+- DNS resolution only works inside k8s cluster
+- DNS resolution for pod names DO NOT work, only service names
+- just curl / ping using IP address
 
 Kubectl Context
 ---------------
@@ -84,4 +102,15 @@ see ~/.kube/config
 kubectl config get-contexts ( show config file )
 kubectl config set*
 
+
+Kubectl YAML spec
+-----------------
+kubectl explain services.spec.type
+
+kubectl explain deployment.spec.template.spec.volumes.nfs.server
+
+
+Services
+--------
+kubectl get endpoints
          

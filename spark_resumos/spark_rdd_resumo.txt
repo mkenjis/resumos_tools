@@ -4,21 +4,21 @@ https://spark.apache.org/docs/3.1.1/api/python/reference/pyspark.html
 
 Resilient Distributed Datasets (RDDs)
 
-RDD is the core data abstraction in Spark. It represents a collection of objects that is
+RDD is Spark core data abstraction. It a logical collection of objects that is
 - Immutable (read-only)
 - Resilient (fault-tolerant)
 - Distributed (dataset spread out to more than one node)
 
-There are two types of RDD operations: 
-* Transformations - produce a new RDD by performing some data manipulation on source RDD. 
-* Actions - trigger a computation to return the result to the calling program or to perform some actions on an RDD’s elements.
+2 types of RDD operations: 
+* Transformation - produces a new RDD by manipulating data on source RDD.
+* Action - triggers a computation to return a result to driver program or output to a external storage.
 
 
-SparkContext
-============
+Create SparkContext
+===================
 
-import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
+import org.apache.spark.SparkContext._
 
 val conf = new SparkConf().setAppName("Counting Lines").setMaster("spark://master:7077")
 val sc = new SparkContext(conf)
@@ -39,19 +39,19 @@ numberRDD.map(num => num * num)
 
 
 2) flatMap(func: (T) => Iterable[U]): RDD[U] - func must return a Iterable
-                                             - returns with elements flatten out
+                                             - returns elements of Iterable flatten out
 val idsStr = licLines.flatMap(_.split(","))
 idsStr.collect()
 res11: Array[String] = Array(15, 16, 20, 20, 77, 80, 94, 94, 98, 16, 31, 31, 15, 20)
 
 
-3) filter(func: (T)): RDD[T] - returns with elements that satisfy func
+3) filter(func: (T)): RDD[T] - returns elements which satisfy func
 
 licLines.filter(line => line.contains("BSD"))
 
 
 4) reduce(func: (V, V) => V): V - returns a single value
-                                - func must be commutative and associative binary operator.
+                                - func must be commutative and associative and binary operator.
 numberRDD.reduce( (x, y) => x + y )   // returns 55
 
 
@@ -77,8 +77,8 @@ res15: Array[Int] = Array(16, 80, 98, 20, 94, 15, 77, 31
 Create Pair RDDs
 ================
 
-Pair RDD is created as RDD 2-element tuple, ie, RDD[(K,V)]
-RDD 2-element tuple get implicitly converted to an instance of class PairRDDFunctions
+Pair RDD is created as 2-element tuple RDD, ie, RDD[(K,V)]
+2-element tuple RDD get implicitly converted to an instance of class PairRDDFunctions
 
 val pairdd = rdd.map( x => (K, V) )
 val pairdd = rdd.keyBy(f(x))
@@ -108,13 +108,13 @@ res1: scala.collection.Map[Int,Long] = Map(69 -> 7, 88 -> 5, 5 -> 11, 10 -> 7, 5
 20 -> 8, 46 -> 9, 93 -> 12, 57 -> 8, 78 -> 11, 29 -> 9, 84 -> 9, 61 -> 8, 89 -> 9, 1 -> 9, 74 -> 11, 6 -> 7, 60 -> 4,...
 
 
-3) lookup(K): RDD[(K, U)] - returns all elements with key = <key>
+3) lookup(K): RDD[(K, U)] - returns all elements with key = K
 
 transByCust.lookup(53)
 res1: Seq[Array[String]] = WrappedArray(Array(2015-03-30, 6:18 AM, 53, 42, 5, 2197.85), Array(2015-03-30, 4:42 AM, 53, 3, 6, 9182.08), ...
 
 
-4) mapValues(func: (V) => U): RDD[(K, U)] - changes only value part in a pair RDD and keeping associated keys untouched
+4) mapValues(func: (V) => U): RDD[(K, U)] - manipulates only value part in a pair RDD and keeps keys untouched
 
 transByCust = transByCust.mapValues(tran => {
 	 if(tran(3).toInt == 25 && tran(4).toDouble > 1) 
@@ -135,7 +135,7 @@ transByCust = transByCust.flatMapValues(tran => {
 		List(tran)
 	 }
 
-6) reduceByKey(func: (V, V) => V): RDD[(K, V)] - merges all values for a key into a single value
+6) reduceByKey(func: (V, V) => V): RDD[(K, V)] - merges all values into a single value for a key.
 
 
 7) foldByKey(zeroValue: V)(func: (V, V) => V): RDD[(K, V)] - same as reduceByKey, but it requires zeroValue parameter in the parameter list 
@@ -184,8 +184,8 @@ Repartitioning RDDs
 
 Mapping RDD Partitions
 ======================
-* mapPartitions ( f(Iterator[T]) => Iterator[U]): RDD[(U)] - function applies transformation on elements of Iterator[T} of each RDD partitions
-* mapPartitionsWithIndex ( f(Int, Iterator[T])) => Iterator[U]): RDD[(U)]
+* mapPartitions ( f(Iterator[T]) => Iterator[U]): RDD[(U)] - applies transformation on elements of Iterator[T} of each RDD partitions
+* mapPartitionsWithIndex ( f(Int, Iterator[T])) => Iterator[U]): RDD[(U)] - same as mapPartitions with a partition index
 * glom(): RDD[ (List[T]) ] - gathers elements of each partition into an array and returns a new RDD with those arrays as elements.
 
 val list = List.fill(500)(scala.util.Random.nextInt(100))
@@ -201,7 +201,7 @@ Joining RDDs
 
 1) Consider RDD(K, V) joined with a RDD(K, W) :
 
-* join — returns RDD (K, (V, W)) matching the keys in the first and second RDDs. For non-matching keys, no elements will be returned.
+* join — returns RDD (K, (V, W)). For non-matching keys, no elements will be returned.
 * leftOuterJoin — returns RDD (K, (V,Option(W))). For non-matching keys in the second RDD, it returns (key, (v, None)).
 * rightOuterJoin — returns RDD (K, (Option(V), W)). For non-matching keys in the first RDD, it returns (key, (None, w)).
 * fullOuterJoin — returns RDD (K, (Option(V), Option(W)). For non-matching keys in the first or second RDD, it returns both  (key, (v, None)) and (key, (None, w)).
@@ -224,8 +224,9 @@ val missingProds = products.subtractByKey(totalsByProd).values
 
 3) cogroup Transformation
 
-- performs a grouping of values by key from each RDDs. 
-- returns an pair RDD whose values are arrays of Iterable objects containing values from each RDD by key.
+- first performs a grouping of values by key from each RDDs.
+- second it performs a join among grouped values by key
+- returns a pair RDD whose values are arrays of Iterable objects containing values from each RDD by key.
 
 cogroup[W1, W2](other1: RDD[(K, W1)], other2: RDD[(K, W2)]): RDD[(K, (Iterable[V], Iterable[W1], Iterable[W2]))]
 
@@ -300,8 +301,8 @@ If defined within its scope, this implicit object will be picked up by the sortB
 RDD Dependencies
 ================
 - Spark execution follows DAG model. Each RDD transformation produces a new RDD. 
-- New RDD depends on the old one. This graph of dependencies is called RDD lineage.
-- Spark packages work to be sent to executors. Every job is divided into stages based on the points where shuffles occur.
+- New RDD depends on the previous one. This graph of dependencies is called RDD lineage.
+- Spark packages the work to be sent to executors. Every job is divided into stages based on the points where shuffles occur.
 - For each stage and each partition, tasks are created and sent to the executors to be processed. 
 
 

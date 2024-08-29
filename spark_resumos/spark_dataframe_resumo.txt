@@ -10,16 +10,17 @@ Spark Dataframes
 import org.apache.spark.sql.SparkSession
 val spark = SparkSession.builder().getOrElse()
 
+2) Creating Dataframes via local collection
 
-2) Creating Dataframes
-
-val itPostsRows = sc.textFile("first-edition/ch05/italianPosts.csv")
-val itPostsSplit = itPostsRows.map(x => x.split("~"))
+import scala.io.Source
+val lines = Source.fromFile("/first-edition/ch05/italianPosts.csv").getLines.toList
 
 * implicit toDF()
 
-import spark.implicits._
-import java.sql.Timestamp
+val Local = lines.map(x => (x(0).toInt, x(1), x(2).toLong, ..., x(N-1).toLong, x(N).toLong)
+val itPosts = Local.toDF("commentCount","lastActivityDate",...,"postTypeId","id")
+
+* case class toDF()
 
 case class Post(
 	 commentCount:Option[Int], 
@@ -36,12 +37,52 @@ case class Post(
 	 postTypeId:Option[Long], 
 	 id:Long)
  
-val caseRDD = itPostsSplit.map(x => Post(x(0).toInt, x(1), x(2).toLong, ..., x(N-1).toLong, x(N).toLong))
-val itPosts = caseRDD.toDF()
+val clsLocal = lines.map(x => Post(x(0).toInt, x(1), x(2).toLong, ..., x(N-1).toLong, x(N).toLong))
+val dfPosts = clsLocal.toDF()
 
-* via spark.createDataframe
+----
 
+2.1) Creating Dataset from local collection
+
+val dsPosts = spark.createDataset(clsLocal)
+
+
+3) Creating Dataframes via RDD
+
+val itPostsRows = sc.textFile("first-edition/ch05/italianPosts.csv")
+val itPostsSplit = itPostsRows.map(x => x.split("~"))
+
+* implicit toDF()
+
+val PostRDD = itPostsSplit.map(x => (x(0).toInt, x(1), x(2).toLong, ..., x(N-1).toLong, x(N).toLong)
+val dfPosts = PostRDD.toDF("commentCount","lastActivityDate",...,"postTypeId","id")
+
+* case class toDF()
+
+case class Post(
+	 commentCount:Option[Int], 
+	 lastActivityDate:Option[java.sql.Timestamp], 
+	 ownerUserId:Option[Long], 
+	 body:String, 
+	 score:Option[Int], 
+	 creationDate:Option[java.sql.Timestamp], 
+	 viewCount:Option[Int], 
+	 title:String, 
+	 tags:String, 
+	 answerCount:Option[Int], 
+	 acceptedAnswerId:Option[Long], 
+	 postTypeId:Option[Long], 
+	 id:Long)
+ 
+val clsRDD = itPostsSplit.map(x => Post(x(0).toInt, x(1), x(2).toLong, ..., x(N-1).toLong, x(N).toLong))
+val dfPosts = clsRDD.toDF()
+
+* spark.createDataframe
+
+import spark.implicits._
+import java.sql.Timestamp
 import org.apache.spark.sql.types._
+
 val schema = StructType(Seq( StructField("commentCount", IntegerType, true), 
                              StructField("lastActivityDate", TimestampType, true), 
                              StructField("ownerUserId", LongType, true),
@@ -58,7 +99,13 @@ val schema = StructType().add("commentCount", IntegerType).
                           add("id", LongType)
 						  
 val rowRDD = itPostsSplit.map(x => Row(x(0),x(1),x(2),....,x(N-1),x(N)))						  
-val itPosts = spark.createDataFrame(rowRDD, schema)
+val dfPosts = spark.createDataFrame(rowRDD, schema)
+
+3.1) Creating Dataset from RDD
+
+val dsPosts = spark.createDataset(clsRDD)
+
+val dsPosts = dfPosts.as[Post]
 
 --------------------
 

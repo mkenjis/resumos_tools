@@ -1,0 +1,7 @@
+> Trivy
+docker run --volume /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --format json -o report.json php81_fpm_deb11_img
+
+
+
+> Grype
+docker run --rm --volume /var/run/docker.sock:/var/run/docker.sock --name Grype anchore/grype:latest php81_fpm_deb11_img

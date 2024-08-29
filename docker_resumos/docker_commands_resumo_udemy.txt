@@ -169,7 +169,7 @@ Persistent Data
 
 Volumes :
 - Docker VOLUME stanza indicates container path uses storage location outside container UFS
-- if container removed, volume oulives container
+- if container removed, volume outlives container
 
 docker volume ls
 docker image inspect <img>  - find "Volume" JSON entry-key

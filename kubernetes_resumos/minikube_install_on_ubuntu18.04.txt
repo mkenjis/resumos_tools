@@ -1,0 +1,19 @@
+
+ubuntu 18.04
+
+kubectl install
+https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/
+
+minikube install
+https://minikube.sigs.k8s.io/docs/start/
+
+õracle virtualbox
+
+1) edit /etc/apt/sources.list and add
+deb [arch=amd64 signed-by=/usr/share/keyrings/oracle-virtualbox-2016.gpg] https://download.virtualbox.org/virtualbox/debian bionic contrib
+
+2) download Oracle public key
+wget -O- https://www.virtualbox.org/download/oracle_vbox_2016.asc | gpg --dearmor --yes --output /usr/share/keyrings/oracle-virtualbox-2016.gpg
+
+3) sudo apt-get update
+sudo apt-get install virtualbox-6.1

@@ -1,0 +1,7 @@
+1) posicionar no diretorio raiz do projeto e executar:
+
+docker container run --rm -v $(pwd):/data/project/ -v <dir report>:/data/results jetbrains/qodana-php --project-dir=/data/project/ --save-report
+
+2) ir no diretorio <dir report> e executar:
+
+php -S <IP local>:8000

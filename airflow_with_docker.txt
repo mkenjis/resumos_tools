@@ -1,0 +1,19 @@
+
+import datetime as dt
+
+from airflow import DAG
+from airflow.providers.docker.operators.docker import DockerOperator
+
+with DAG(
+    dag_id="docker_tst2",
+    description="Test docker run",
+    start_date=dt.datetime(2022, 5, 1),
+    schedule_interval="@daily",
+) as dag:
+    docker_op = DockerOperator(
+        task_id="docker1",
+        image="alpine:3.7",
+        command=["uname",
+            "-a",
+        ],
+    )

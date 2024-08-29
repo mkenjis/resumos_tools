@@ -1,0 +1,16 @@
+install WSL2 via COntrol Panel->Programs->Activate Windows Resources
+
+wsl --install Ubuntu     # install/start VM and enter its prompt
+wsl --terminate Ubuntu   # removes VM
+
+to stop it, look for WslService in Task Manager, and finish it.
+
+docker install step-by-step  https://docs.docker.com/engine/install/ubuntu/
+
+usermod -aG docker <user>
+
+curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
+unzip awscliv2.zip
+sudo ./aws/install
+
+wsl --username <user>

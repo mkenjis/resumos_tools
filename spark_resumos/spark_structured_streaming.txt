@@ -1,0 +1,128 @@
+Structured Streaming
+====================
+
+Structured Streaming uses same Dataframe/Dataset API and Spark SQL to support incremental processing of data stream.
+
+declare a schema to read
+--------------------------
+
+val mobileDataSchema = new StructType().add("id", StringType, false)
+                       .add("action", StringType, false)
+                       .add("ts", TimestampType, false)
+
+
+create streaming DF from data source
+------------------------------------
+
+// file
+spark.readStream.format("json").
+                 schema(fileSchema).
+				 load()
+// socket
+spark.readStream.format("socket").
+                 option("host","localhost").
+				 option("port",9999).
+				 load()
+// kafka
+spark.readStream.format("kafka").
+                 option("kafka.bootstrap.servers", "host1:port1,host2:port2").
+				 option("subscribe", "events").
+				 load()
+	  
+write table result to data sink
+-------------------------------
+
+format():
+=========
+df.writeStream.format("<type>").
+               outputMode("<mode>").
+			   trigger(Trigger.ProcessingTime("5 second").
+			   option("checkpointLocation", checkpointDir).
+			   start()
+
+format() :
+kafka - inform following options:
+        .option("kafka.bootstrap.servers", "host1:port1,host2:port2")
+        .option("subscribe", "events")
+file (json,csv,parquet,orc) - common destinations local FS, HDFS, or S3
+console - print output on console
+memory - use driver's memory to store the output
+
+outputMode() :
+append - only new rows in result table is written (stateless queries)
+complete - entire result table is written (stateful queries)
+update - only new/updated rows in result table is written (stateful queries)
+			 
+		* stateful - queries with groupBy, joins and aggregations
+		  stateless - queries that only cleans, transforms or restructures data 
+
+trigger() :
+default - process as soon as previous micro-batched is processed
+ProcessingTime - process at fixed user-provided interval
+once - process whole batch data once
+
+foreachBatch():
+==============
+def writeCountsToCassandra(updatedCountsDF: DataFrame, batchId: Long) {
+ // Use Cassandra batch data source to write the updated counts
+ updatedCountsDF
+ .write
+ .format("org.apache.spark.sql.cassandra")
+ .options(Map("table" -> tableName, "keyspace" -> keyspaceName))
+ .mode("append")
+ .save()
+
+df.writeStream
+ .foreachBatch(writeCountsToCassandra _)
+ .outputMode("update")
+ .option("checkpointLocation", checkpointDir)
+ .start()
+
+foreach():
+=========
+import org.apache.spark.sql.ForeachWriter
+val foreachWriter = new ForeachWriter[String] { // typed with Strings
+  def open(partitionId: Long, epochId: Long): Boolean = {
+  // Open connection to data store
+  // Return true if write should continue
+  }
+   def process(record: String): Unit = {
+  // Write string to data store using opened connection
+  }
+  def close(errorOrNull: Throwable): Unit = {
+  // Close the connection
+  }
+}
+
+resultDSofStrings.writeStream.foreach(foreachWriter).start()
+
+
+get status streaming DF
+-----------------------
+
+query.lastProgress()
+query.status()
+
+
+handling event-time events
+--------------------------
+
+event-time window
+=================
+sensorReadings
+ .groupBy("sensorId", window("eventTime", "5 minute"))
+ .count()
+ 
+event-time window with sliding 
+==============================
+sensorReadings
+ .groupBy("sensorId", window("eventTime", "10 minute", "5 minute"))
+ .count()
+
+
+event-time window with sliding and watermark
+============================================
+sensorReadings
+ .withWatermark("eventTime", "10 minutes")
+ .groupBy("sensorId", window("eventTime", "10 minutes", "5 minute"))
+ .mean("value")

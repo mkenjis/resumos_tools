@@ -13,7 +13,7 @@ sudo gitlab-runner register -n \
   --url https://gitlab.dcide.info/ \
   --registration-token -V2bzkzAWzLYfWUDReVt \
   --executor docker \
-  --description "fmb_teste_gitlab_runner_dind_0" \
+  --description "docker_prod_gitlab_runner_dind" \
   --docker-image "docker:20.10.16" \
   --docker-privileged \
   --docker-volumes "/certs/client"
@@ -34,5 +34,17 @@ gitlab-runner register -n \
   --url https://gitlab.dcide.info/ \
   --registration-token -V2bzkzAWzLYfWUDReVt \
   --executor docker \
-  --description "fmb_teste_gitrunner_inside_docker" \
+  --description "docker_sem_dind" \
   --docker-image "docker:20.10.16"
+
+
+
+
+gitlab-runner register -n \
+  --url https://gitlab.dcide.info/ \
+  --registration-token GR1348941v2VaFydBTfVrYwxriNXc \
+  --executor docker \
+  --description "docker_com_dind" \
+  --docker-image "docker:20.10.16" \
+  --docker-privileged \
+  --docker-volumes "/certs/client"
